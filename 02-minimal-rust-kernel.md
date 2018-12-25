@@ -47,11 +47,11 @@ x86架构支持两种固件标准：**BIOS**（Basic Input/Output System）和**
 
 如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，需要使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要创造的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
-## 目标系统详解清单
+## 目标系统配置清单
 
 通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（target triple）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（Application Binary Interface, ABI）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持许多不同的目标三元组，包括安卓系统对应的`arm-linux-androideabi`和WebAssembly使用的`wasm32-unknown-unknown`。
 
-为了编写我们的目标系统，鉴于我们需要做一些特殊的配置（比如没有依赖的底层操作系统），已经支持的目标三元组都不能满足我们的要求。幸运的是，只需使用一个JSON文件，Rust便允许我们定义自己的目标系统。比如，一个描述`x86_64-unknown-linux-gnu`目标系统的JSON大概长这样：
+为了编写我们的目标系统，鉴于我们需要做一些特殊的配置（比如没有依赖的底层操作系统），已经支持的目标三元组都不能满足我们的要求。幸运的是，只需使用一个JSON文件，Rust便允许我们定义自己的目标系统；这个文件常被称作**目标系统配置清单**（target specification）。比如，一个描述`x86_64-unknown-linux-gnu`目标系统的配置清单大概长这样：
 
 ```json
 {
@@ -69,3 +69,42 @@ x86架构支持两种固件标准：**BIOS**（Basic Input/Output System）和**
 }
 ```
 
+一个配置清单中包含多个**配置项**（field）。大多数的配置项都是LLVM需求的，它们将配置为特定平台生成的代码。打个比方，`data-layout`配置项定义了不同的整数、浮点数、指针类型的长度；另外，还有一些Rust是用作条件变编译的配置项，如`target-pointer-width`。还有一些类型的配置项，定义了这个包该如何被编译，例如，`pre-link-args`配置项指定了该向链接器传入的参数。
+
+我们将把我们的操作系统内核编译到`x86_64`架构，所以我们的配置清单将和上面的例子相似。现在，我们来创建一个名为`x86_64-blog_os.json`的文件——当然也可以选用自己喜欢的文件名——里面包含这样的内容：
+
+```json
+{
+    "llvm-target": "x86_64-unknown-none",
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "arch": "x86_64",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "target-c-int-width": "32",
+    "os": "none",
+    "executables": true,
+}
+```
+
+需要注意的是，因为我们要在**裸机**（bare metal）上运行内核，我们已经修改了`llvm-target`的内容，并将`os`配置项的值改为`none`。
+
+我们还需要添加下面与编译相关的配置项：
+
+```json
+"linker-flavor": "ld.lld",
+"linker": "rust-lld",
+```
+
+在这里，我们不使用平台默认提供的链接器，因为它可能不支持Linux目标系统。为了链接我们的内核，我们使用跨平台的**LLD链接器**（LLD linker），它是和Rust打包发布的。
+
+```json
+"panic-strategy": "abort",
+```
+
+这个配置项的意思是，我们的编译目标不支持panic时的**栈展开**（stack unwinding），所以我们选择直接**在panic时中止**（abort on panic）。这和在`Cargo.toml`文件中添加`panic = "abort"`选项的作用是相同的，所以我们可以不在这里的配置清单中填写这一项。
+
+```json
+"disable-redzone": true,
+```
+
+我们正在编写一个内核，所以我们应该同时处理中断。要安全地实现这一点，我们必须禁用一个称作红色区域（redzone）的栈指针优化
