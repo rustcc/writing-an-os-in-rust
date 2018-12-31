@@ -45,7 +45,7 @@ x86架构支持两种固件标准：**BIOS**（Basic Input/Output System）和**
 
 现在我们已经明白电脑是如何启动的，那也是时候编写我们自己的内核了。我们的小目标是，创建一个内核的磁盘映像，它能够在启动时，向屏幕输出一行“Hello World!”；我们的工作将基于上一章构建的独立式可执行程序。
 
-如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，需要使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要创造的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
+如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要创造的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
 ## 目标系统配置清单
 
@@ -180,3 +180,152 @@ error[E0463]: can't find crate for `compiler_builtins`
 
 哇哦，编译失败了！输出的错误告诉我们，Rust编译器现在不再能找到`core`或`compiler_builtins`库；而所有`no_std`上下文的库都隐式地链接到这两个库。`core`库包含基础的Rust类型，如`Result`、`Option`和迭代器等；`compiler_builtins`库提供LLVM需要的许多底层操作，比如`memcpy`。
 
+通常状况下，`core`库以**预编译库**（precompiled library）的形式与Rust编译器一同发布——这时，`core`库只对支持的宿主系统有效，而我们自定义的目标系统无效。如果我们想为其它系统编译代码，我们需要为这些系统重新编译整个`core`库。
+
+## Cargo xbuild
+
+这就是为什么我们需要`cargo xbuild`工具。这个工具封装了`cargo build`；但不同的是，它将自动交叉编译`core`库和一些**编译器内建库**（compiler built-in libraries）。我们可以用下面的命令安装它：
+
+```bash
+cargo install cargo-xbuild
+```
+
+这个工具依赖于Rust的源代码；我们可以使用`rustup component add rust-src`来安装源代码。
+
+现在我们可以使用`xbuild`代替`build`重新编译：
+
+```bash
+> cargo xbuild --target x86_64-blog_os.json
+   Compiling core v0.0.0 (file:///…/rust/src/libcore)
+    Finished release [optimized] target(s) in 52.75 secs
+   Compiling compiler_builtins v0.1.0 (file:///…/rust/src/libcompiler_builtins)
+    Finished release [optimized] target(s) in 3.92 secs
+   Compiling alloc v0.0.0 (/tmp/xargo.9I97eR3uQ3Cq)
+    Finished release [optimized] target(s) in 7.61s
+   Compiling blog_os v0.1.0 (file:///…/blog_os)
+    Finished dev [unoptimized + debuginfo] target(s) in 0.29 secs
+```
+
+我们能看到，`cargo xbuild`为我们自定义的目标交叉编译了`core`、`compiler_builtin`和`alloc`三个部件。这些部件使用了大量的**不稳定特性**（unstable features），所以只能在nightly版本的Rust编译器中工作。这之后，`cargo xbuild`成功地编译了我们的`blog_os`包。
+
+现在我们可以为裸机编译内核了；但是，我们提供给引导程序的入口点`_start`函数还是空的。我们可以添加一些东西进去，比如——
+
+## 向屏幕打印字符
+
+要做到这一步，最简单的方式是写入**VGA字符缓冲区**（[VGA text buffer](https://en.wikipedia.org/wiki/VGA-compatible_text_mode)）：这是一段映射到VGA硬件的特殊内存片段，包含着显示在屏幕上的内容。通常情况下，它能够存储25行、80列共2000个**字符单元**（character cell）；每个字符单元能够显示一个ASCII字符，也能设置这个字符的**前景色**（foreground color）和**背景色**（background color）。输出到屏幕的字符大概长这样：
+
+![](https://upload.wikimedia.org/wikipedia/commons/6/6d/Codepage-737.png)
+
+我们将在下篇文章中详细讨论VGA字符缓冲区的内存布局；目前我们只需要知道，这段缓冲区的地址是`0xb8000`，且每个字符单元包含一个ASCII码字节和一个颜色字节。
+
+我们的实现就像这样：
+
+```rust
+static HELLO: &[u8] = b"Hello World!";
+
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    let vga_buffer = 0xb8000 as *mut u8;
+
+    for (i, &byte) in HELLO.iter().enumerate() {
+        unsafe {
+            *vga_buffer.offset(i as isize * 2) = byte;
+            *vga_buffer.offset(i as isize * 2 + 1) = 0xb;
+        }
+    }
+
+    loop {}
+}
+```
+
+在这段代码中，我们预先定义了一个**字节字符串**（byte string）类型的**静态变量**（static variable），名为`HELLO`。我们首先将整数`0xb8000`**转换**（cast）为一个**裸指针**（[raw pointer](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）。这之后，我们迭代`HELLO`的每个字节，使用[`enumerate`](https://doc.rust-lang.org/core/iter/trait.Iterator.html#method.enumerate)获得一个额外的序号变量`i`。在`for`语句的循环体中，我们使用[`offset`](https://doc.rust-lang.org/std/primitive.pointer.html#method.offset)偏移裸指针，解引用它，来将字符串的每个字节和对应的颜色字节——`0xb`代表淡青色——写入内存位置。
+
+要注意的是，所有的裸指针内存操作都被一个**unsafe语句块**（[unsafe block](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html)）包围。这是因为，此时编译器不能确保我们创建的裸指针是有效的；一个裸指针可能指向任何一个你内存位置；直接解引用并写入它，也许会损坏正常的数据。使用`unsafe`语句块时，程序员其实在告诉编译器，自己保证语句块内的操作是有效的。事实上，`unsafe`语句块并不会关闭Rust的安全检查机制；它允许你多做的事情[只有四件](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#unsafe-superpowers)。
+
+使用`unsafe`语句块要求程序员有足够的自信，所以必须强调的一点是，**肆意使用unsafe语句块并不是Rust编程的一贯方式**。在缺乏足够经验的前提下，直接在`unsafe`语句块内操作裸指针，非常容易把事情弄得很糟糕；比如，在不注意的情况下，我们很可能会意外地操作缓冲区以外的内存。
+
+在这样的前提下，我们希望最小化`unsafe `语句块的使用。使用Rust语言，我们能够将不安全操作将包装为一个安全的抽象模块。举个栗子，我们可以创建一个VGA缓冲区类型，把所有的不安全语句封装起来，来确保从类型外部操作时，无法写出不安全的代码：通过这种方式，我们只需要最少的`unsafe`语句块来确保我们不破坏**内存安全**（[memory safety](https://en.wikipedia.org/wiki/Memory_safety)）。在下一篇文章中，我们将会创建这样的VGA缓冲区封装。
+
+## 创建引导映像
+
+既然我们已经有了一个能够打印字符的可执行程序，现在是时候把它打包为一个**引导映像**（boot image）了。根据我们从上文学到的知识，我们首先需要一个引导程序，它将初始化CPU并加载我们的内核。
+
+编写引导程序并不容易，所以我们不编写自己的引导程序，而是使用已有的[`bootloader`](https://crates.io/crates/bootloader)包；无需依赖于C语言，这个包基于Rust代码和内联汇编，实现了一个五脏俱全的BIOS引导程序。为了用它启动我们的内核，我们需要将它添加为一个依赖项，在`Cargo.toml`中添加下面的代码：
+
+```toml
+# in Cargo.toml
+
+[dependencies]
+bootloader = "0.3"
+```
+
+只添加引导程序为依赖项，并不足以创建一个可引导的磁盘映像；我们还需要内核编译完成之后，将内核和引导程序组合在一起。然而，截至目前，原生的cargo并不支持在编译完成后添加其它步骤（详见[这个issue](https://github.com/rust-lang/cargo/issues/545)）。
+
+为了解决这个问题，我们建议使用`bootimage`工具——它将会在内核编译完毕后，将它和引导程序组合在一起，最终创建一个能够引导的磁盘映像。我们可以使用下面的命令来安装这款工具：
+
+```bash
+cargo install bootimage --version "^0.5.0"
+```
+
+参数`^0.5.0`是一个**脱字号条件**（[caret requirement](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements)），它的意义是“0.5.0版本或一个兼容0.5.0的新版本”。这意味着，如果这款工具发布了修复bug的版本`0.5.1`或`0.5.2`，cargo将会自动选择最新的版本，因为它依然兼容`0.5.0`；但cargo不会选择`0.6.0`，因为这个版本被认为并不和`0.5.x`系列版本兼容。需要注意的是，`Cargo.toml`中定义的依赖包版本都默认是脱字号条件：刚才我们指定`bootloader`包的版本时，遵循的就是这个原则。
+
+成功安装`bootimage`工具后，创建一个可引导的磁盘映像就变得相当容易。我们来输入下面的命令：
+
+```bash
+> bootimage build --target x86_64-blog_os.json
+```
+
+可以看到的是，`bootimage`工具开始使用`cargo xbuild`编译你的内核，所以它将增量编译我们修改后的源码。在这之后，它会编译内核的引导程序，这将花费一定的时间；但和所有其它依赖包相似的是，在首次编译后，产生的二进制文件将被缓存下来——这将显著地加速后续的编译过程。最终，`bootimage`将把内核和引导程序组合为一个可引导的磁盘映像。
+
+运行这行命令之后，我们应该能在`target/x86_64-blog_os/debug`目录内找到我们的映像文件`bootimage-blog_os.bin`。我们可以在虚拟机内启动它，也可以刻录到U盘上以便在真机上启动。（需要注意的是，因为文件格式不同，这里的bin文件并不是一个光驱映像，所以将它刻录到光盘不会起作用。）
+
+事实上，在这行命令背后，`bootimage`工具执行了三个步骤：
+
+1. 编译我们的内核为一个**ELF**（[Executable and Linkable Format](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format)）文件；
+2. 编译引导程序为独立的可执行文件；
+3. 将内核ELF文件**按字节拼接**（append by bytes）到引导程序的末端。
+
+当机器启动时，引导程序将会读取并解析拼接在其后的ELF文件。这之后，它将把程序片段映射到**分页表**（page table）中的**虚拟地址**（virtual address），清零**BSS段**（BSS segment），还将创建一个栈。最终它将读取**入口点地址**（entry point address）——我们程序中`_start`函数的位置——并跳转到这个位置。
+
+要让编译内核更方便，我们还可以对`bootimage`工具做一些配置。向`Cargo.toml`文件添加`[package.metadata.bootimage]`配置项，插入并配置`default-target`为先前创建的目标系统配置清单；这样我们编译内核时，就无需手动传递`--target`参数了。需要添加的配置如下：
+
+```toml
+# in Cargo.toml
+
+[package.metadata.bootimage]
+default-target = "x86_64-blog_os.json"
+```
+
+保存配置以后，我们就可以省略`--target`参数，直接使用`bootimage build`编译内核。
+
+## 启动内核
+
+现在我们可以在虚拟机中启动内核了。为了在[QEMU](https://www.qemu.org/)中启动内核，我们使用下面的命令：
+
+```bash
+> qemu-system-x86_64 -drive format=raw,file=bootimage-blog_os.bin
+```
+
+![](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
+
+或者更简单地，你可以使用`bootimage`工具的`run`命令：
+
+```bash
+> bootimage run
+```
+
+在默认情况下，它将使用和前文相同的命令启动QEMU。如果要传递额外的QEMU选项，可以在输入`--`之后传递进去：比如，`bootimage run -- --help`能显示QEMU帮助。事实上，通过修改`Cargo.toml`中`package.metadata.bootimage`配置项内的`run-command`配置，我们也能够修改默认运行的命令——[README文件](https://github.com/rust-osdev/bootimage/blob/master/Readme.md)和命令`bootimage --help`都能指导我们该怎么做。
+
+## 在真机上运行内核
+
+我们也可以把内核写入U盘，以便在真机上启动。在Linux系统中，可以使用下面的命令：
+
+```bash
+> dd if=target/x86_64-blog_os/debug/bootimage-blog_os.bin of=/dev/sdX && sync
+```
+
+在这里，`sdX`是U盘的**设备名**（[device name](https://en.wikipedia.org/wiki/Device_file)）。请注意，**在选择设备名的时候一定要极其小心，因为这个设备上已有的数据将全部被擦除**。
+
+## 下篇预告
+
+在下篇文章中，我们将细致地探索VGA字符缓冲区，并包装它为一个安全的接口。我们还将基于它实现`println!`宏。

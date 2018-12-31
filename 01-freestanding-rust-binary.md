@@ -6,7 +6,7 @@
 
 # 使用Rust创造操作系统（一）：独立式可执行程序
 
-创建一个不连接标准库的Rust可执行文件，将是我们迈出的第一步。无需底层操作系统的支撑，这将能让在[**裸机**（bare metal）](https://en.wikipedia.org/wiki/Bare_machine)上运行Rust代码成为现实。
+创建一个不连接标准库的Rust可执行文件，将是我们迈出的第一步。无需底层操作系统的支撑，这将能让在**裸机**（[bare metal](https://en.wikipedia.org/wiki/Bare_machine)）上运行Rust代码成为现实。
 
 ## 简介
 
@@ -28,7 +28,7 @@ Nightly版本的编译器允许我们在源码的开头插入**特性标签**（
 
 ## 禁用标准库
 
-在默认情况下，所有的Rust**包**（crate）都会链接[**标准库**（standard library）](https://doc.rust-lang.org/std/)，而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[`no_std`标签](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
+在默认情况下，所有的Rust**包**（crate）都会链接**标准库**（[standard library](https://doc.rust-lang.org/std/)），而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[`no_std`标签](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
 
 我们可以从创建一个新的cargo项目开始。最简单的办法是使用下面的命令：
 
@@ -36,7 +36,7 @@ Nightly版本的编译器允许我们在源码的开头插入**特性标签**（
 > cargo new blog_os
 ```
 
-在这里我把项目命名为`blog_os`，当然读者也可以选择自己的项目名称。这里，cargo默认为我们添加了`--bin`选项，说明我们将要创建一个可执行文件（而不是一个库）；cargo还为我们添加了`--edition 2018`标签，指明项目的包要使用Rust的[**2018版次**（2018 edition）](https://rust-lang-nursery.github.io/edition-guide/rust-2018/index.html)。当我们执行这行指令的时候，cargo为我们创建的目录结构如下：
+在这里我把项目命名为`blog_os`，当然读者也可以选择自己的项目名称。这里，cargo默认为我们添加了`--bin`选项，说明我们将要创建一个可执行文件（而不是一个库）；cargo还为我们添加了`--edition 2018`标签，指明项目的包要使用Rust的**2018版次**（[2018 edition](https://rust-lang-nursery.github.io/edition-guide/rust-2018/index.html)）。当我们执行这行指令的时候，cargo为我们创建的目录结构如下：
 
 ```
 blog_os
@@ -71,7 +71,7 @@ error: cannot find macro `println!` in this scope
   |     ^^^^^^^
 ```
 
-出现这个错误的原因是，[`println!`宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖于标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向[**标准输出**（standard output）](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)打印字符，它依赖于特殊的文件描述符，而这是由操作系统提供的特性。
+出现这个错误的原因是，[`println!`宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖于标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向**标准输出**（[standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)）打印字符，它依赖于特殊的文件描述符，而这是由操作系统提供的特性。
 
 所以我们可以移除这行代码，使用一个空的main函数再次尝试编译：
 
@@ -107,19 +107,19 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-类型为[`PanicInfo`](https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html)的参数包含了panic发生的文件名、代码行数和可选的错误信息。这个函数从不返回，所以他被标记为[**发散函数**（diverging function）](https://doc.rust-lang.org/book/first-edition/functions.html#diverging-functions)。发散函数的返回类型称作[**Never类型**（"never" type）](https://doc.rust-lang.org/nightly/std/primitive.never.html)，记为`!`。对这个函数，我们目前能做的事情很少，所以我们只需编写一个无限循环`loop {}`。
+类型为[`PanicInfo`](https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html)的参数包含了panic发生的文件名、代码行数和可选的错误信息。这个函数从不返回，所以他被标记为**发散函数**（[diverging function](https://doc.rust-lang.org/book/first-edition/functions.html#diverging-functions)）。发散函数的返回类型称作**Never类型**（["never" type](https://doc.rust-lang.org/nightly/std/primitive.never.html)），记为`!`。对这个函数，我们目前能做的事情很少，所以我们只需编写一个无限循环`loop {}`。
 
 ## eh_personality语言项
 
-语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循[**复制语义**（copy semantics）](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`标签将它定义为了一个语言项，达到与编译器联系的目的。
+语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)）——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`标签将它定义为了一个语言项，达到与编译器联系的目的。
 
 我们可以自己实现语言项，但这只应该是最后的手段：目前来看，语言项是高度不稳定的语言细节实现，它们不会经过编译期类型检查（所以编译器甚至不确保它们的参数类型是否正确）。幸运的是，我们有更稳定的方式，来修复上面的语言项错误。
 
-`eh_personality`语言项标记的函数，将被用于实现[**栈展开**（stack unwinding）](http://www.bogotobogo.com/cplusplus/stackunwinding.php)。在使用标准库的情况下，当panic发生时，Rust将使用栈展开，来运行在栈上活跃的所有变量的**析构函数**（destructor）——这确保了所有使用的内存都被释放，允许调用程序的**父进程**（parent thread）捕获panic，处理并继续运行。但是，栈展开是一个复杂的过程，如Linux的[libunwind](http://www.nongnu.org/libunwind/)或Windows的[**结构化异常处理**（structured exception handling, SEH）](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680657(v=vs.85).aspx)，通常需要依赖于操作系统的库；所以我们不在自己编写的操作系统中使用它。
+`eh_personality`语言项标记的函数，将被用于实现**栈展开**（[stack unwinding](http://www.bogotobogo.com/cplusplus/stackunwinding.php)）。在使用标准库的情况下，当panic发生时，Rust将使用栈展开，来运行在栈上活跃的所有变量的**析构函数**（destructor）——这确保了所有使用的内存都被释放，允许调用程序的**父进程**（parent thread）捕获panic，处理并继续运行。但是，栈展开是一个复杂的过程，如Linux的[libunwind](http://www.nongnu.org/libunwind/)或Windows的**结构化异常处理**（[structured exception handling, SEH](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680657(v=vs.85).aspx)），通常需要依赖于操作系统的库；所以我们不在自己编写的操作系统中使用它。
 
 ## 禁用栈展开
 
-在其它一些情况下，栈展开不是迫切需求的功能；因此，Rust提供了[**在panic时中止**（abort on panic）](https://github.com/rust-lang/rust/pull/32900)的选项。这个选项能禁用栈展开相关的标志信息生成，也因此能缩小生成的二进制程序的长度。有许多方式能打开这个选项，最简单的方式是把下面的几行设置代码加入我们的`Cargo.toml`：
+在其它一些情况下，栈展开不是迫切需求的功能；因此，Rust提供了**在panic时中止**（[abort on panic](https://github.com/rust-lang/rust/pull/32900)）的选项。这个选项能禁用栈展开相关的标志信息生成，也因此能缩小生成的二进制程序的长度。有许多方式能打开这个选项，最简单的方式是把下面的几行设置代码加入我们的`Cargo.toml`：
 
 ```toml
 [profile.dev]
@@ -142,7 +142,7 @@ error: requires `start` lang_item
 
 ## start语言项
 
-我们通常会认为，当运行一个程序时，首先被调用的是`main`函数。但是，大多数语言都拥有一个[**运行时系统**（runtime system）](https://en.wikipedia.org/wiki/Runtime_system)，它通常为**垃圾回收**（garbage collection）或**绿色线程**（software threads，或green threads）服务，如Java的GC或Go语言的协程（goroutine）；这个运行时系统需要在main函数前启动，因为它需要让程序初始化。
+我们通常会认为，当运行一个程序时，首先被调用的是`main`函数。但是，大多数语言都拥有一个**运行时系统**（[runtime system](https://en.wikipedia.org/wiki/Runtime_system)），它通常为**垃圾回收**（garbage collection）或**绿色线程**（software threads，或green threads）服务，如Java的GC或Go语言的协程（goroutine）；这个运行时系统需要在main函数前启动，因为它需要让程序初始化。
 
 在一个典型的使用标准库的Rust程序中，程序运行是从一个名为`crt0`的运行时库开始的。`crt0`意为C runtime zero，它能建立一个适合运行C语言程序的环境，这包含了栈的创建和可执行程序参数的传入。这之后，这个运行时库会调用[Rust的运行时入口点](https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73)，这个入口点被称作**start语言项**（"start" language item）。Rust只拥有一个极小的运行时，它被设计为拥有较少的功能，如爆栈检测和打印**堆栈轨迹**（stack trace）。这之后，这个运行时将会调用main函数。
 
@@ -180,9 +180,9 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-非常重要的一点是，我们使用`no_mangle`标记函数以禁用[**名称重整**（name mangling）](https://en.wikipedia.org/wiki/Name_mangling)，否则编译器就可能最终生成一个叫做`_ZN3blog_os4_start7hb173fedf945531caE` 的函数，无法让链接器辨别。为了与操作系统兼容，我们还需要将函数标记为`extern "C"`，说明这个函数生成为[C语言的调用方式](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用方式。
+非常重要的一点是，我们使用`no_mangle`标记函数以禁用**名称重整**（[name mangling](https://en.wikipedia.org/wiki/Name_mangling)），否则编译器就可能最终生成一个叫做`_ZN3blog_os4_start7hb173fedf945531caE` 的函数，无法让链接器辨别。为了与操作系统兼容，我们还需要将函数标记为`extern "C"`，说明这个函数生成为[C语言的调用方式](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用方式。
 
-与前文的`panic`函数类似，返回值类型为`!`说明这是一个发散函数，或者说不允许返回。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如说操作系统的[**exit系统调用**（"exit" system call）](https://en.wikipedia.org/wiki/Exit_(system_call))。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
+与前文的`panic`函数类似，返回值类型为`!`说明这是一个发散函数，或者说不允许返回。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如说操作系统的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
 
 如果我们现在就编译这段程序，会出来一大段不太好看的错误：
 
