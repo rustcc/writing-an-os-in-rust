@@ -180,7 +180,7 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-非常重要的一点是，我们使用`no_mangle`标记函数以禁用**名称重整**（[name mangling](https://en.wikipedia.org/wiki/Name_mangling)），否则编译器就可能最终生成一个叫做`_ZN3blog_os4_start7hb173fedf945531caE` 的函数，无法让链接器辨别。为了与操作系统兼容，我们还需要将函数标记为`extern "C"`，说明这个函数生成为[C语言的调用方式](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用方式。
+非常重要的一点是，我们使用`no_mangle`标记函数以禁用**名称重整**（[name mangling](https://en.wikipedia.org/wiki/Name_mangling)），否则编译器就可能最终生成一个叫做`_ZN3blog_os4_start7hb173fedf945531caE` 的函数，无法让链接器辨别。为了与操作系统兼容，我们还需要将函数标记为`extern "C"`，说明这个函数生成为[C语言的调用约定](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用约定。
 
 与前文的`panic`函数类似，返回值类型为`!`说明这是一个发散函数，或者说不允许返回。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如说操作系统的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
 

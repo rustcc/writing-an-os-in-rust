@@ -47,11 +47,11 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要创造的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
-## 目标系统配置清单
+## 目标配置清单
 
 通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（[target triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple)）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（[Application Binary Interface, ABI](https://stackoverflow.com/a/2456882)）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持[许多不同的目标三元组](https://forge.rust-lang.org/platform-support.html)，包括安卓系统对应的`arm-linux-androideabi`和[WebAssembly使用的`wasm32-unknown-unknown`](https://www.hellorust.com/setup/wasm-target/)。
 
-为了编写我们的目标系统，鉴于我们需要做一些特殊的配置（比如没有依赖的底层操作系统），[已经支持的目标三元组](https://forge.rust-lang.org/platform-support.html)都不能满足我们的要求。幸运的是，只需使用一个JSON文件，Rust便允许我们定义自己的目标系统；这个文件常被称作**目标系统配置清单**（target specification）。比如，一个描述`x86_64-unknown-linux-gnu`目标系统的配置清单大概长这样：
+为了编写我们的目标系统，鉴于我们需要做一些特殊的配置（比如没有依赖的底层操作系统），[已经支持的目标三元组](https://forge.rust-lang.org/platform-support.html)都不能满足我们的要求。幸运的是，只需使用一个JSON文件，Rust便允许我们定义自己的目标系统；这个文件常被称作**目标配置清单**（target specification）。比如，一个描述`x86_64-unknown-linux-gnu`目标系统的配置清单大概长这样：
 
 ```json
 {
@@ -121,7 +121,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 为了让读者的印象更清晰，我们撰写了一篇关于禁用SIMD的短文。
 
-现在，我们将各个配置项整合在一起。我们的目标系统配置清单应该长这样：
+现在，我们将各个配置项整合在一起。我们的目标配置清单应该长这样：
 
 ```json
 {
@@ -287,7 +287,7 @@ cargo install bootimage --version "^0.5.0"
 
 当机器启动时，引导程序将会读取并解析拼接在其后的ELF文件。这之后，它将把程序片段映射到**分页表**（page table）中的**虚拟地址**（virtual address），清零**BSS段**（BSS segment），还将创建一个栈。最终它将读取**入口点地址**（entry point address）——我们程序中`_start`函数的位置——并跳转到这个位置。
 
-要让编译内核更方便，我们还可以对`bootimage`工具做一些配置。向`Cargo.toml`文件添加`[package.metadata.bootimage]`配置项，插入并配置`default-target`为先前创建的目标系统配置清单；这样我们编译内核时，就无需手动传递`--target`参数了。需要添加的配置如下：
+要让编译内核更方便，我们还可以对`bootimage`工具做一些配置。向`Cargo.toml`文件添加`[package.metadata.bootimage]`配置项，插入并配置`default-target`为先前创建的目标配置清单；这样我们编译内核时，就无需手动传递`--target`参数了。需要添加的配置如下：
 
 ```toml
 # in Cargo.toml

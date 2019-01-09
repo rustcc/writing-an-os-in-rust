@@ -47,3 +47,9 @@
 mod vga_buffer;
 ```
 
+~~这行代码定义了一个Rust模块，它的内容可以保存在`src/vga_buffer.rs`或`src/vga_buffer/mod.rs`中；后一种保存方式支持使用**子模块**（submodule），而前者不支持。~~
+
+这行代码定义了一个Rust模块，它的内容应当保存在`src/vga_buffer.rs`文件中。使用**2018版次**（2018 edition）的Rust时，我们可以把模块的**子模块**（submodule）文件直接保存到`src/vga_buffer/`文件夹下，与`vga_buffer.rs`文件共存，而无需创建一个`mod.rs`文件。
+
+除非另有说明，
+
