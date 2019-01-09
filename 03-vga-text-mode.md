@@ -19,7 +19,7 @@
 | 12-14 | Background color |
 | 15    | Blink |
 
-其中，前景色和背景色取值范围如下：
+其中，**前景色**（foreground color）和**背景色**（background color）取值范围如下：
 
 | Number  | Color  | Number + Bright Bit  | Bright Color |
 |-----|----------|------|--------|
@@ -51,5 +51,96 @@ mod vga_buffer;
 
 这行代码定义了一个Rust模块，它的内容应当保存在`src/vga_buffer.rs`文件中。使用**2018版次**（2018 edition）的Rust时，我们可以把模块的**子模块**（submodule）文件直接保存到`src/vga_buffer/`文件夹下，与`vga_buffer.rs`文件共存，而无需创建一个`mod.rs`文件。
 
-除非另有说明，
+我们的模块暂时不需要添加子模块，所以我们将它创建为`src/vga_buffer.rs`文件。除非另有说明，本文中的代码都保存到这个文件中。
+
+## 颜色
+
+首先，我们使用Rust的**枚举**（enum）表示一种颜色：
+
+```rust
+// in src/vga_buffer.rs
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum Color {
+    Black = 0,
+    Blue = 1,
+    Green = 2,
+    Cyan = 3,
+    Red = 4,
+    Magenta = 5,
+    Brown = 6,
+    LightGray = 7,
+    DarkGray = 8,
+    LightBlue = 9,
+    LightGreen = 10,
+    LightCyan = 11,
+    LightRed = 12,
+    Pink = 13,
+    Yellow = 14,
+    White = 15,
+}
+```
+
+我们使用**类似于C语言的枚举**（C-like enum），为每个颜色明确指定一个数字。在这里，每个用`repr(u8)`注记标注的枚举类型，都会以一个`u8`的形式存储。事实上4个二进制位就足够了，但Rust语言并不提供`u4`类型。
+
+通常来说，编译器会对每个未使用的变量发出**警告**（warning）；使用`#[allow(dead_code)]`，我们可以对`Color`枚举类型禁用这个警告。
+
+我们还**生成**（[derive](http://rustbyexample.com/trait/derive.html)）了 [`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)、[`Clone`](https://doc.rust-lang.org/nightly/core/clone/trait.Clone.html)、[`Debug`](https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html)、[`PartialEq`](https://doc.rust-lang.org/nightly/core/cmp/trait.PartialEq.html)和[`Eq`](https://doc.rust-lang.org/nightly/core/cmp/trait.Eq.html) 这几个trait：这让我们的类型遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/book/first-edition/ownership.html#copy-types)），也让它可以被比较、被调试打印。
+
+为了描述包含前景色和背景色的、完整的**颜色代码**（color code），我们基于`u8`创建一个新类型：
+
+```rust
+// in src/vga_buffer.rs
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct ColorCode(u8);
+
+impl ColorCode {
+    fn new(foreground: Color, background: Color) -> ColorCode {
+        ColorCode((background as u8) << 4 | (foreground as u8))
+    }
+}
+```
+
+这里，`ColorCode`类型包装了一个完整的颜色代码字节，它包含前景色和背景色信息。和`Color`类型类似，我们为它生成`Copy`和`Debug`等一系列trait。
+
+## 字符缓冲区
+
+现在，我们可以添加更多的结构体，来描述屏幕上的字符和整个字符缓冲区：
+
+```rust
+// in src/vga_buffer.rs
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(C)]
+struct ScreenChar {
+    ascii_character: u8,
+    color_code: ColorCode,
+}
+
+const BUFFER_HEIGHT: usize = 25;
+const BUFFER_WIDTH: usize = 80;
+
+struct Buffer {
+    chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
+}
+```
+
+在内存布局层面，Rust并不保证按顺序布局成员变量。因此，我们需要使用`#[repr(C)]`标记结构体；这将按C语言约定的顺序布局它的成员变量，让我们能正确地映射内存片段。
+
+为了输出字符到屏幕，我们来创建一个`Writer`类型：
+
+```rust
+// in src/vga_buffer.rs
+
+pub struct Writer {
+    column_position: usize,
+    color_code: ColorCode,
+    buffer: &'static mut Buffer,
+}
+```
+
+
 
