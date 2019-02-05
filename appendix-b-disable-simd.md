@@ -32,5 +32,3 @@
 "features": "-mmx,-sse,+soft-float"
 ```
 
-//todo：SSE or MMX？
-
