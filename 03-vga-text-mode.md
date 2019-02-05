@@ -146,3 +146,35 @@ pub struct Writer {
 
 ## 打印字符
 
+现在我们可以使用`Writer`类型来更改缓冲区内的字符了。首先，为了写入一个ASCII码字节，我们创建这样的函数：
+
+```rust
+// in src/vga_buffer.rs
+
+impl Writer {
+    pub fn write_byte(&mut self, byte: u8) {
+        match byte {
+            b'\n' => self.new_line(),
+            byte => {
+                if self.column_position >= BUFFER_WIDTH {
+                    self.new_line();
+                }
+
+                let row = BUFFER_HEIGHT - 1;
+                let col = self.column_position;
+
+                let color_code = self.color_code;
+                self.buffer.chars[row][col] = ScreenChar {
+                    ascii_character: byte,
+                    color_code,
+                };
+                self.column_position += 1;
+            }
+        }
+    }
+
+    fn new_line(&mut self) {/* TODO */}
+}
+```
+
+如果这个字节是一个换行符
