@@ -83,7 +83,7 @@ pub enum Color {
 }
 ```
 
-我们使用**类似于C语言的枚举**（C-like enum），为每个颜色明确指定一个数字。在这里，每个用`repr(u8)`注记标注的枚举类型，都会以一个`u8`的形式存储。事实上4个二进制位就足够了，但Rust语言并不提供`u4`类型。
+我们使用**类似于C语言的枚举**（C-like enum），为每个颜色明确指定一个数字。在这里，每个用`repr(u8)`注记标注的枚举类型，都会以一个`u8`的形式存储——事实上4个二进制位就足够了，但Rust语言并不提供`u4`类型。
 
 通常来说，编译器会对每个未使用的变量发出**警告**（warning）；使用`#[allow(dead_code)]`，我们可以对`Color`枚举类型禁用这个警告。
 
@@ -177,4 +177,29 @@ impl Writer {
 }
 ```
 
-如果这个字节是一个换行符
+如果这个字节是一个**换行符**（[line feed](https://en.wikipedia.org/wiki/Newline)）字节`\n`，我们的`Writer`不应该打印新字符，相反，它将调用我们稍后会实现的`new_line`方法；其它的字节应该将在`match`语句的第二个分支中被打印到屏幕上。
+
+当打印字节时，`Writer`将检查当前行是否已满。如果已满，它将首先调用`new_line`方法来将这一行字向上提升，再将一个新的`ScreenChar`写入到缓冲区，最终将当前的光标位置前进一位。
+
+要打印整个字符串，我们把它转换为字节并依次输出：
+
+```rust
+// in src/vga_buffer.rs
+
+impl Writer {
+    pub fn write_string(&mut self, s: &str) {
+        for byte in s.bytes() {
+            match byte {
+                // 可以是能打印的ASCII码字节，也可以是换行符
+                0x20...0x7e | b'\n' => self.write_byte(byte),
+                // 不包含在上述范围之内的字节
+                _ => self.write_byte(0xfe),
+            }
+
+        }
+    }
+}
+```
+
+VGA字符缓冲区只支持ASCII码字节和**代码页437**（[Code page 437](https://en.wikipedia.org/wiki/Code_page_437)）定义的字节。Rust语言的字符串默认编码为[UTF-8](http://www.fileformat.info/info/unicode/utf8.htm)，也因此可能包含一些VGA字符缓冲区不支持的字节：我们使用`match`语句，来区别可打印的ASCII码或换行字节，和其它不可打印的字节。对每个不可打印的字节，我们打印一个`■`符号；这个符号在VGA硬件中被编码为十六进制的`0xfe`。
+
