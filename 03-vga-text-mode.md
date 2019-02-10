@@ -229,9 +229,11 @@ pub fn print_something() {
 
 需要注意的是，`ö`字符被打印为两个`■`字符。这是因为在[UTF-8](http://www.fileformat.info/info/unicode/utf8.htm)编码下，字符`ö`是由两个字节表述的——而这两个字节并不处在可打印的ASCII码字节范围之内。事实上，这是UTF-8编码的基本特点之一：**如果一个字符占用多个字节，那么每个组成它的独立字节都不是有效的ASCII码字节**（the individual bytes of multi-byte values are never valid ASCII）。
 
-### Volatile
+## Volatile
 
-We just saw that our message was printed correctly. However, it might  not work with future Rust compilers that optimize more aggressively.
+我们刚才看到，自己想要输出的信息被正确地打印到屏幕上。然而，未来Rust编译器更暴力的优化可能让这段代码不按预期工作。
+
+产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，我们需要标记这些写入操作为
 
 The problem is that we only write to the `Buffer` and  never read from it again. The compiler doesn't know that we really  access VGA buffer memory (instead of normal RAM) and knows nothing about  the side effect that some characters appear on the screen. So it might  decide that these writes are unnecessary and can be omitted. To avoid  this erroneous optimization, we need to specify these writes as *volatile*. This tells the compiler that the write has side effects and should not be optimized away.
 
