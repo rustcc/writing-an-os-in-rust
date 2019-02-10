@@ -233,9 +233,9 @@ pub fn print_something() {
 
 我们刚才看到，自己想要输出的信息被正确地打印到屏幕上。然而，未来Rust编译器更暴力的优化可能让这段代码不按预期工作。
 
-产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，我们需要标记这些写入操作为
+产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[volatile](https://en.wikipedia.org/wiki/Volatile_(computer_programming))操作。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
 
-The problem is that we only write to the `Buffer` and  never read from it again. The compiler doesn't know that we really  access VGA buffer memory (instead of normal RAM) and knows nothing about  the side effect that some characters appear on the screen. So it might  decide that these writes are unnecessary and can be omitted. To avoid  this erroneous optimization, we need to specify these writes as *volatile*. This tells the compiler that the write has side effects and should not be optimized away.
+为了在我们的VGA缓冲区中使用volatile写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**封装类型**（wrapping type）和它的`read`、`write`方法，
 
 In order to use volatile writes for the VGA buffer, we use the [volatile](https://docs.rs/volatile) library. This *crate* (this is how packages are called in the Rust world) provides a `Volatile` wrapper type with `read` and `write` methods. These methods internally use the [read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html) and [write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) functions of the core library and thus guarantee that the reads/writes are not optimized away.
 
