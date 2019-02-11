@@ -290,7 +290,7 @@ impl Writer {
 
 ## 格式化宏
 
-It would be nice to support Rust's formatting macros, too. That way,  we can easily print different types like integers or floats. To support  them, we need to implement the [`core::fmt::Write`](https://doc.rust-lang.org/nightly/core/fmt/trait.Write.html) trait. The only required method of this trait is `write_str` that looks quite similar to our `write_string` method, just with a `fmt::Result` return type:
+支持Rust提供的**格式化宏**（formatting macros）也是一个相当棒的主意。通过这种途径，我们可以轻松地打印不同类型的变量，如整数或浮点数。为了支持它们，我们需要实现[`core::fmt::Write`](https://doc.rust-lang.org/nightly/core/fmt/trait.Write.html) trait；要实现它，唯一需要提供的方法是`write_str`，它和我们先前编写的`write_string`方法差别不大，只是返回值类型变成了`fmt::Result`：
 
 ```
 // in src/vga_buffer.rs

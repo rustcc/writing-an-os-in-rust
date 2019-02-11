@@ -32,3 +32,12 @@
 "features": "-mmx,-sse,+soft-float"
 ```
 
+
+
+> *原文链接：*<https://os.phil-opp.com/red-zone/>  *原作者：@phil-opp*  
+>
+> 译文链接：--
+>
+> 译者：洛佳  华中科技大学* 
+>
+> 转载请注明出处，商业转载请联系原作者*
