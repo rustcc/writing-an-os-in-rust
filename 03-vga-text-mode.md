@@ -235,24 +235,22 @@ pub fn print_something() {
 
 产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[volatile](https://en.wikipedia.org/wiki/Volatile_(computer_programming))操作。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
 
-为了在我们的VGA缓冲区中使用volatile写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**封装类型**（wrapping type）和它的`read`、`write`方法，
+为了在我们的VGA缓冲区中使用volatile写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**包装类型**（wrapping type）和它的`read`、`write`方法；这些方法包装了`core::ptr`内的[read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html)和[write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) 函数，从而保证读操作或写操作不会被编译器优化。
 
-In order to use volatile writes for the VGA buffer, we use the [volatile](https://docs.rs/volatile) library. This *crate* (this is how packages are called in the Rust world) provides a `Volatile` wrapper type with `read` and `write` methods. These methods internally use the [read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html) and [write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) functions of the core library and thus guarantee that the reads/writes are not optimized away.
+要添加`volatile`包为项目的**依赖项**（dependency），我们可以在`Cargo.toml`文件的`dependencies`中添加下面的代码：
 
-We can add a dependency on the `volatile` crate by adding it to the `dependencies` section of our `Cargo.toml`:
-
-```
+```toml
 # in Cargo.toml
 
 [dependencies]
 volatile = "0.2.3"
 ```
 
-The `0.2.3` is the [semantic](http://semver.org/) version number. For more information, see the [Specifying Dependencies](http://doc.crates.io/specifying-dependencies.html) guide of the cargo documentation.
+`0.2.3`表示一个**语义版本号**（[semantic version number](http://semver.org/)），在cargo文档的[《指定依赖项》章节](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html)可以找到与它相关的使用指南。
 
-Let's use it to make writes to the VGA buffer volatile. We update our `Buffer` type as follows:
+现在，我们使用它来完成VGA缓冲区的volatile写入操作。我们将`Buffer`类型的定义修改为下列代码：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 use volatile::Volatile;
@@ -262,11 +260,11 @@ struct Buffer {
 }
 ```
 
-Instead of a `ScreenChar`, we're now using a `Volatile<ScreenChar>`. (The `Volatile` type is [generic](https://doc.rust-lang.org/book/ch10-01-syntax.html)  and can wrap (almost) any type). This ensures that we can't  accidentally write to it through a “normal” write. Instead, we have to  use the `write` method now.
+在这里，我们不使用`ScreenChar`，而选择使用`Volatile<ScreenChar>`——在这里，`Volatile`类型是一个**泛型**（[generic](https://doc.rust-lang.org/book/ch10-01-syntax.html)），可以包装几乎所有的类型——这确保了我们不会通过普通的写入操作，意外地向它写入数据；我们转而使用提供的`write`方法。
 
-This means that we have to update our `Writer::write_byte` method:
+这意味着，我们必须要修改我们的`Writer::write_byte`方法：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 impl Writer {
@@ -288,9 +286,9 @@ impl Writer {
 }
 ```
 
-Instead of a normal assignment using `=`, we're now using the `write` method. This guarantees that the compiler will never optimize away this write.
+正如代码所示，我们不再使用普通的`=`赋值，而使用了`write`方法：这能确保编译器不再优化这个写入操作。
 
-### Formatting Macros
+## 格式化宏
 
 It would be nice to support Rust's formatting macros, too. That way,  we can easily print different types like integers or floats. To support  them, we need to implement the [`core::fmt::Write`](https://doc.rust-lang.org/nightly/core/fmt/trait.Write.html) trait. The only required method of this trait is `write_str` that looks quite similar to our `write_string` method, just with a `fmt::Result` return type:
 
