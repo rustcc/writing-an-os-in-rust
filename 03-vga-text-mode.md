@@ -417,7 +417,7 @@ error[E0017]: references in statics may only refer to immutable values
 
 为了明白现在发生了什么，我们需要知道一点：一般的变量在运行时初始化，而静态变量在编译时初始化。Rust编译器规定了一个称为**常量求值器**（[const evaluator](https://rust-lang.github.io/rustc-guide/const-eval.html)）的组件，它应该在编译时处理这样的初始化工作。虽然它目前的功能较为有限，但对它的扩展工作进展活跃，比如允许在常量中panic的[一篇RFC文档](https://github.com/rust-lang/rfcs/pull/2345)。
 
-关于`ColorCode::new`的问题应该能使用**常函数**（[`const` functions](https://doc.rust-lang.org/unstable-book/language-features/const-fn.html)）解决，但常量求值器还存在不完善之处，它还不能在编译时直接转换裸指针到变量的引用。也许未来这段代码能够工作，但在那之前，我们需要寻找另外的解决方案。
+关于`ColorCode::new`的问题应该能使用**常函数**（[`const` functions](https://doc.rust-lang.org/unstable-book/language-features/const-fn.html)）解决，但常量求值器还存在不完善之处，它还不能在编译时直接转换裸指针到变量的引用——也许未来这段代码能够工作，但在那之前，我们需要寻找另外的解决方案。
 
 ### 延迟初始化
 
@@ -576,7 +576,7 @@ pub extern "C" fn _start() {
 }
 ```
 
-要注意的是，我们在入口函数中不需要导入这个宏，因为它已经被置于包的根命名空间了。
+要注意的是，我们在入口函数中不需要导入这个宏——因为它已经被置于包的根命名空间了。
 
 运行这段代码，和我们预料的一样，一个 *“Hello World!”* 字符串被打印到了屏幕上：
 
@@ -584,7 +584,7 @@ pub extern "C" fn _start() {
 
 ### 打印panic信息
 
-既然我们已经有了`println!`宏，我们可以使用它，在panic处理函数中打印panic信息和panic产生的位置：
+既然我们已经有了`println!`宏，我们可以在panic处理函数中，使用它打印panic信息和panic产生的位置：
 
 ```rust
 // in main.rs
@@ -601,7 +601,7 @@ fn panic(info: &PanicInfo) -> ! {
 
 ![QEMU printing “panicked at 'Some panic message', src/main.rs:28:5](https://os.phil-opp.com/vga-text-mode/vga-panic.png)
 
-所以，现在我们不仅知道panic已经发生，还知道panic信息和产生panic的代码。
+所以，现在我们不仅能知道panic已经发生，还能够知道panic信息和产生panic的代码。
 
 ## 小结
 
