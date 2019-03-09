@@ -24,11 +24,11 @@ Rust语言有三个**发行频道**（release channel），分别是stable、bet
 
 要管理安装好的Rust，我强烈建议使用[rustup](https://www.rustup.rs/)：它允许你同时安装nightly、beta和stable版本的编译器，而且让更新Rust变得容易。你可以输入`rustup override add nightly`来选择在当前目录使用nightly版本的Rust。或者，你也可以在项目根目录添加一个名称为`rust-toolchain`、内容为`nightly`的文件。要检查你是否已经安装了一个nightly，你可以运行`rustc --version`：返回的版本号末尾应该包含`-nightly`。
 
-Nightly版本的编译器允许我们在源码的开头插入**特性标签**（feature flag），来自由选择并使用大量实验性的功能。举个栗子，要使用实验性的[内联汇编（asm!宏）](https://doc.rust-lang.org/nightly/unstable-book/language-features/asm.html)，我们可以在`main.rs`的顶部添加`#![feature(asm)]`标签。要注意的是，这样的实验性功能**不稳定**（unstable），意味着未来的Rust版本可能会修改或移除这些功能，而不会有预先的警告过渡。因此我们只有在绝对必要的时候，才应该使用这些特性。
+Nightly版本的编译器允许我们在源码的开头插入**特性标签**（feature flag），来自由选择并使用大量实验性的功能。举个栗子，要使用实验性的[内联汇编（asm!宏）](https://doc.rust-lang.org/nightly/unstable-book/language-features/asm.html)，我们可以在`main.rs`的顶部添加`#![feature(asm)]`。要注意的是，这样的实验性功能**不稳定**（unstable），意味着未来的Rust版本可能会修改或移除这些功能，而不会有预先的警告过渡。因此我们只有在绝对必要的时候，才应该使用这些特性。
 
 ## 禁用标准库
 
-在默认情况下，所有的Rust**包**（crate）都会链接**标准库**（[standard library](https://doc.rust-lang.org/std/)），而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[`no_std`标签](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
+在默认情况下，所有的Rust**包**（crate）都会链接**标准库**（[standard library](https://doc.rust-lang.org/std/)），而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[`no_std`属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
 
 我们可以从创建一个新的cargo项目开始。最简单的办法是使用下面的命令：
 
@@ -47,9 +47,9 @@ blog_os
 
 在这里，`Cargo.toml`文件包含了包的**配置**（configuration），比如包的名称、作者、[semver版本](http://semver.org/)和项目依赖项；`src/main.rs`文件包含包的**根模块**（root module）和main函数。我们可以使用`cargo build`来编译这个包，然后在`target/debug`文件夹内找到编译好的`blog_os`二进制文件。
 
-## no_std标签
+## no_std属性
 
-现在我们的包依然隐式地与标准库链接。为了禁用这种链接，我们可以尝试添加[`no_std`标签](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)：
+现在我们的包依然隐式地与标准库链接。为了禁用这种链接，我们可以尝试添加[`no_std`属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)：
 
 ```rust
 // main.rs
@@ -93,7 +93,7 @@ error: language item required, but not found: `eh_personality`
 
 ## 实现panic处理函数
 
-标签`panic_handler`能定义一个函数，它会在一个panic发生时被调用。标准库中提供了自己的panic处理函数，但在`no_std`环境中，我们需要定义一个自己的panic处理函数：
+`panic_handler`属性定义了一个函数，它会在一个panic发生时被调用。标准库中提供了自己的panic处理函数，但在`no_std`环境中，我们需要定义一个自己的panic处理函数：
 
 ```rust
 // in main.rs
@@ -111,7 +111,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 ## eh_personality语言项
 
-语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)）——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`标签将它定义为了一个语言项，达到与编译器联系的目的。
+语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)）——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`属性将它定义为了一个语言项，达到与编译器联系的目的。
 
 我们可以自己实现语言项，但这只应该是最后的手段：目前来看，语言项是高度不稳定的语言细节实现，它们不会经过编译期类型检查（所以编译器甚至不确保它们的参数类型是否正确）。幸运的是，我们有更稳定的方式，来修复上面的语言项错误。
 
@@ -150,7 +150,7 @@ error: requires `start` lang_item
 
 ## 重写入口点
 
-要告诉Rust编译器我们不使用预定义的入口点，我们可以添加`#![no_main]`标签。
+要告诉Rust编译器我们不使用预定义的入口点，我们可以添加`#![no_main]`属性。
 
 ```rust
 #![no_std]

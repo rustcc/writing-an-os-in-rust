@@ -455,21 +455,19 @@ lazy_static! {
 
 ### 自旋锁
 
-要定义同步的内部可变性，我们往往使用标准库提供的互斥锁类[Mutex](https://doc.rust-lang.org/nightly/std/sync/struct.Mutex.html)，它通过提供当资源被占用时将线程**阻塞**（block）的**互斥条件**（mutual exclusion）实现这一点；但我们初步的内核代码还没有线程和阻塞的概念，我们将不能使用这个类。//todo
+要定义同步的内部可变性，我们往往使用标准库提供的互斥锁类[Mutex](https://doc.rust-lang.org/nightly/std/sync/struct.Mutex.html)，它通过提供当资源被占用时将线程**阻塞**（block）的**互斥条件**（mutual exclusion）实现这一点；但我们初步的内核代码还没有线程和阻塞的概念，我们将不能使用这个类。不过，我们还有一种较为基础的互斥锁实现方式——**自旋锁**（[spinlock](https://en.wikipedia.org/wiki/Spinlock)）。自旋锁并不会调用阻塞逻辑，而是在一个小的无限循环中反复尝试获得这个锁，也因此会一直占用CPU时间，直到互斥锁被它的占用者释放。
 
-To get synchronized interior mutability, users of the standard library can use [Mutex](https://doc.rust-lang.org/nightly/std/sync/struct.Mutex.html).  It provides mutual exclusion by blocking threads when the resource is  already locked. But our basic kernel does not have any blocking support  or even a concept of threads, so we can't use it either. However there  is a really basic kind of mutex in computer science that requires no  operating system features: the [spinlock](https://en.wikipedia.org/wiki/Spinlock).  Instead of blocking, the threads simply try to lock it again and again  in a tight loop and thus burn CPU time until the mutex is free again.
+为了使用自旋的互斥锁，我们添加[spin包](https://crates.io/crates/spin)到项目的依赖项列表：
 
-To use a spinning mutex, we can add the [spin crate](https://crates.io/crates/spin) as a dependency:
-
-```
+```toml
 # in Cargo.toml
 [dependencies]
 spin = "0.4.9"
 ```
 
-Then we can use the spinning Mutex to add safe [interior mutability](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html) to our static `WRITER`:
+现在，我们能够使用自旋的互斥锁，为我们的`WRITER`类实现安全的[内部可变性](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html)：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 use spin::Mutex;
@@ -483,9 +481,9 @@ lazy_static! {
 }
 ```
 
-Now we can delete the `print_something` function and print directly from our `_start` function:
+现在我们可以删除`print_something`函数，尝试直接在`_start`函数中打印字符：
 
-```
+```rust
 // in src/main.rs
 #[no_mangle]
 pub extern "C" fn _start() -> ! {
@@ -497,17 +495,17 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-We need to import the `fmt::Write` trait in order to be able to use its functions.
+在这里，我们需要导入名为`fmt::Write`的trait，来使用实现它的类的相应方法。
 
-### Safety
+### 安全性
 
-Note that we only have a single unsafe block in our code, which is needed to create a `Buffer` reference pointing to `0xb8000`.  Afterwards, all operations are safe. Rust uses bounds checking for  array accesses by default, so we can't accidentally write outside the  buffer. Thus, we encoded the required conditions in the type system and  are able to provide a safe interface to the outside.
+经过上文的努力后，我们现在的代码只剩一个unsafe语句块，它用于创建一个指向`0xb8000`地址的`Buffer`类型引用；在这步之后，所有的操作都是安全的。Rust将为每个数组访问检查边界，所以我们不会在不经意间越界到缓冲区之外。因此，我们把需要的条件编码到Rust的类型系统，这之后，我们为外界提供的接口就符合内存安全原则了。
 
-### A println Macro
+### `println!`宏
 
-Now that we have a global writer, we can add a `println` macro that can be used from anywhere in the codebase. Rust's [macro syntax](https://doc.rust-lang.org/nightly/book/ch19-06-macros.html#declarative-macros-with-macro_rules-for-general-metaprogramming) is a bit strange, so we won't try to write a macro from scratch. Instead we look at the source of the [`println!` macro](https://doc.rust-lang.org/nightly/std/macro.println!.html) in the standard library:
+现在我们有了一个全局的`Writer`实例，我们就可以基于它实现`println!`宏，这样它就能被任意地方的代码使用了。Rust提供的[宏定义语法](https://doc.rust-lang.org/nightly/book/ch19-06-macros.html#declarative-macros-with-macro_rules-for-general-metaprogramming)需要时间理解，所以我们将不从零开始编写这个宏。我们先看看标准库中[`println!`宏的实现源码](https://doc.rust-lang.org/nightly/std/macro.println!.html)：
 
-```
+```rust
 #[macro_export]
 macro_rules! println {
     () => (print!("\n"));
@@ -515,7 +513,7 @@ macro_rules! println {
 }
 ```
 
-Macros are defined through one or more rules, which are similar to `match` arms. The `println` macro has two rules: The first rule for is invocations without arguments (e.g `println!()`), which is expanded to `print!("\n")` and thus just prints a newline. the second rule is for invocations with parameters such as `println!("Hello")` or `println!("Number: {}", 4)`. It is also expanded to an invocation of the `print!` macro, passing all arguments and an additional newline `\n` at the end.
+宏是通过一个或多个**规则**（rule）定义的，这就像`match`语句的多个分支。`println!`宏有两个规则：第一个规则不要求传入参数——就比如`println!()`——它将被扩展为`print!("\n")`，因此只会打印一个新行；第二个要求传入参数——好比`println!("Rust能够编写操作系统")`或`println!("我学习Rust已经{}年了", 3)`——它将使用`print!`宏扩展，传入它需求的所有参数，并在输出的字符串最后加入一个换行符`\n`。
 
 The `#[macro_export]` attribute makes the available to the  whole crate (not just the module it is defined) and external crates. It  also places the macro at the crate root, which means that we have to  import the macro through `use std::println` instead of `std::macros::println`.
 
