@@ -515,9 +515,9 @@ macro_rules! println {
 
 宏是通过一个或多个**规则**（rule）定义的，这就像`match`语句的多个分支。`println!`宏有两个规则：第一个规则不要求传入参数——就比如`println!()`——它将被扩展为`print!("\n")`，因此只会打印一个新行；第二个要求传入参数——好比`println!("Rust能够编写操作系统")`或`println!("我学习Rust已经{}年了", 3)`——它将使用`print!`宏扩展，传入它需求的所有参数，并在输出的字符串最后加入一个换行符`\n`。
 
-The `#[macro_export]` attribute makes the available to the  whole crate (not just the module it is defined) and external crates. It  also places the macro at the crate root, which means that we have to  import the macro through `use std::println` instead of `std::macros::println`.
+这里，`#[macro_export]`属性让整个包（crate）和基于它的包都能访问这个宏，而不仅限于定义它的模块（module）。它还将把宏置于包的根模块（crate root）下，这意味着比如我们需要通过`use std::println`来导入这个宏，而不是通过`std::macros::println`。
 
-The [`print!` macro](https://doc.rust-lang.org/nightly/std/macro.print!.html) is defined as:
+[`print!`宏](https://doc.rust-lang.org/nightly/std/macro.print!.html)是这样定义的：
 
 ```
 #[macro_export]
@@ -526,13 +526,13 @@ macro_rules! print {
 }
 ```
 
-The macro expands to a call of the [`_print` function](https://github.com/rust-lang/rust/blob/29f5c699b11a6a148f097f82eaa05202f8799bbc/src/libstd/io/stdio.rs#L698) in the `io` module. The [`$crate` variable](https://doc.rust-lang.org/1.30.0/book/first-edition/macros.html#the-variable-crate) ensures that the macro also works from outside the `std` crate by expanding to `std` when it's used in other crates.
+这个宏将扩展为一个对`io`模块中[`_print`函数](https://github.com/rust-lang/rust/blob/29f5c699b11a6a148f097f82eaa05202f8799bbc/src/libstd/io/stdio.rs#L698)的调用。[`$crate`变量](https://doc.rust-lang.org/1.30.0/book/first-edition/macros.html#the-variable-crate)将在`std`包之外被解析为`std`包，保证整个宏在`std`包之外也可以使用。
 
-The [`format_args` macro](https://doc.rust-lang.org/nightly/std/macro.format_args.html) builds a [fmt::Arguments](https://doc.rust-lang.org/nightly/core/fmt/struct.Arguments.html) type from the passed arguments, which is passed to `_print`. The [`_print` function](https://github.com/rust-lang/rust/blob/29f5c699b11a6a148f097f82eaa05202f8799bbc/src/libstd/io/stdio.rs#L698) of libstd calls `print_to`, which is rather complicated because it supports different `Stdout` devices. We don't need that complexity since we just want to print to the VGA buffer.
+[`format_args!`宏](https://doc.rust-lang.org/nightly/std/macro.format_args.html)将传入的参数搭建为一个[fmt::Arguments](https://doc.rust-lang.org/nightly/core/fmt/struct.Arguments.html)类型，这个类型将被传入`_print`函数。`std`包中的[`_print` 函数](https://github.com/rust-lang/rust/blob/29f5c699b11a6a148f097f82eaa05202f8799bbc/src/libstd/io/stdio.rs#L698)将调用复杂的私有函数`print_to`，来处理对不同`Stdout`设备的支持。我们不需要编写这样的复杂函数，因为我们只需要打印到VGA字符缓冲区。
 
-To print to the VGA buffer, we just copy the `println!` and `print!` macros, but modify them to use our own `_print` function:
+要打印到字符缓冲区，我们把`println!`和`print!`两个宏复制过来，但修改部分代码，让这些宏使用我们定义的`_print`函数：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 #[macro_export]
@@ -553,19 +553,19 @@ pub fn _print(args: fmt::Arguments) {
 }
 ```
 
-One thing that we changed from the original `println` definition is that we prefixed the invocations of the `print!` macro with `$crate` too. This ensures that we don't need to have to import the `print!` macro too if we only want to use `println`.
+我们首先修改了`println!`宏，在每个使用的`print!`宏前面添加了`$crate`变量。这样我们在只需要使用`println!`时，不必也编写代码导入`print!`宏。
 
-Like in the standard library, we add the `#[macro_export]`  attribute to both macros to make them available everywhere in our  crate. Note that this places the macros in the root namespace of the  crate, so importing them via `use crate::vga_buffer::println` does not work. Instead, we have to do `use crate::println`.
+就像标准库做的那样，我们为两个宏都添加了`#[macro_export]`属性，这样在包的其它地方也可以使用它们。需要注意的是，这将占用包的**根命名空间**（root namespace），所以我们不能通过`use crate::vga_buffer::println`来导入它们；我们应该使用`use crate::println`。
 
-The `_print` function locks our static `WRITER` and calls the `write_fmt` method on it. This method is from the `Write` trait, we need to import that trait. The additional `unwrap()` at the end panics if printing isn't successful. But since we always return `Ok` in `write_str`, that should not happen.
+另外，`_print`函数将占有静态变量`WRITER`的锁，并调用它的`write_fmt`方法。这个方法是从名为`Write`的trait中获得的，所以我们需要导入这个trait。额外的`unwrap()`函数将在打印不成功的时候panic；但既然我们的`write_str`总是返回`Ok`，这种情况不应该发生。
 
-Since the macros need to be able to call `_print` from  outside of the module, the function needs to be public. However, since  we consider this a private implementation detail, we add the [`doc(hidden)` attribute](https://doc.rust-lang.org/nightly/rustdoc/the-doc-attribute.html#dochidden) to hide it from the generated documentation.
+如果这个宏将能在模块外访问，它们也应当能访问`_print`函数，因此这个函数必须是公有的（public）。然而，考虑到这是一个私有的实现细节，我们添加一个[`doc(hidden)`属性](https://doc.rust-lang.org/nightly/rustdoc/the-doc-attribute.html#dochidden)，防止他在生成的文档中出现。
 
-### Hello World using `println`
+### 使用`println!`的Hello World
 
-Now we can use `println` in our `_start` function:
+现在，我们可以在`_start`里使用`println!`了：
 
-```
+```rust
 // in src/main.rs
 
 #[no_mangle]
@@ -576,20 +576,20 @@ pub extern "C" fn _start() {
 }
 ```
 
-Note that we don't have to import the macro in the main function, because it already lives in the root namespace.
+要注意的是，我们在入口函数中不需要导入这个宏，因为它已经被置于包的根命名空间了。
 
-As expected, we now see a *“Hello World!”* on the screen:
+运行这段代码，和我们预料的一样，一个 *“Hello World!”* 字符串被打印到了屏幕上：
 
 ![QEMU printing “Hello World!”](https://os.phil-opp.com/vga-text-mode/vga-hello-world.png)
 
-### Printing Panic Messages
+### 打印panic信息
 
-Now that we have a `println` macro, we can use it in our panic function to print the panic message and the location of the panic:
+既然我们已经有了`println!`宏，我们可以使用它，在panic处理函数中打印panic信息和panic产生的位置：
 
-```
+```rust
 // in main.rs
 
-/// This function is called on panic.
+/// 这个函数将在panic发生时被调用
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
@@ -597,18 +597,18 @@ fn panic(info: &PanicInfo) -> ! {
 }
 ```
 
-When we now insert `panic!("Some panic message");` in our `_start` function, we get the following output:
+当我们在`_start`函数中插入一行`panic!("Some panic message");`后，我们得到了这样的输出：
 
 ![QEMU printing “panicked at 'Some panic message', src/main.rs:28:5](https://os.phil-opp.com/vga-text-mode/vga-panic.png)
 
-So we know not only that a panic has occurred, but also the panic message and where in the code it happened.
+所以，现在我们不仅知道panic已经发生，还知道panic信息和产生panic的代码。
 
-## Summary
+## 小结
 
-In this post we learned about the structure of the VGA text buffer  and how it can be written through the memory mapping at address `0xb8000`.  We created a Rust module that encapsulates the unsafety of writing to  this memory mapped buffer and presents a safe and convenient interface  to the outside.
+这篇文章中，我们学习了VGA字符缓冲区的结构，以及如何在`0xb8000`的内存映射地址访问它。我们将所有的不安全操作包装为一个Rust模块，以便在外界安全地访问它。
 
-We also saw how easy it is to add dependencies on third-party libraries, thanks to cargo. The two dependencies that we added, `lazy_static` and `spin`, are very useful in OS development and we will use them in more places in future posts.
+我们也发现了——感谢便于使用的cargo——在Rust中使用第三方提供的包是及其容易的。我们添加的两个依赖项，`lazy_static`和`spin`，都在操作系统开发中及其有用；我们将在未来的文章中多次使用它们。
 
-## What's next?
+## 下篇预告
 
-The next post explains how to set up Rust's built in unit test  framework. We will then create some basic unit tests for the VGA buffer  module from this post.
+下一篇文章中，我们将会讲述如何配置Rust内置的单元测试框架。我们还将为本文编写的VGA缓冲区模块添加基础的单元测试项目。
