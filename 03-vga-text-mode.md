@@ -292,7 +292,7 @@ impl Writer {
 
 支持Rust提供的**格式化宏**（formatting macros）也是一个相当棒的主意。通过这种途径，我们可以轻松地打印不同类型的变量，如整数或浮点数。为了支持它们，我们需要实现[`core::fmt::Write`](https://doc.rust-lang.org/nightly/core/fmt/trait.Write.html) trait；要实现它，唯一需要提供的方法是`write_str`，它和我们先前编写的`write_string`方法差别不大，只是返回值类型变成了`fmt::Result`：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 use core::fmt;
@@ -305,11 +305,11 @@ impl fmt::Write for Writer {
 }
 ```
 
-The `Ok(())` is just a `Ok` Result containing the `()` type.
+这里，`Ok(())`属于`Result`枚举类型中的`Ok`，包含一个值为`()`的变量.
 
-Now we can use Rust's built-in `write!`/`writeln!` formatting macros:
+现在我们就可以使用Rust内置的格式化宏`write!`和`writeln!`了：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 pub fn print_something() {
@@ -326,13 +326,13 @@ pub fn print_something() {
 }
 ```
 
-Now you should see a `Hello! The numbers are 42 and 0.3333333333333333` at the bottom of the screen. The `write!` call returns a `Result` which causes a warning if not used, so we call the [`unwrap`](https://doc.rust-lang.org/core/result/enum.Result.html#method.unwrap) function on it, which panics if an error occurs. This isn't a problem in our case, since writes to the VGA buffer never fail.
+现在，你应该在屏幕下端看到一串`Hello! The numbers are 42 and 0.3333333333333333`。`write!`宏返回的`Result`类型必须被使用，所以我们调用它的[`unwrap`](https://doc.rust-lang.org/core/result/enum.Result.html#method.unwrap)方法，它将在错误发生时panic。这里的情况下应该不会发生这样的问题，因为写入VGA字符缓冲区并没有可能失败。
 
-### Newlines
+### 换行
 
-Right now, we just ignore newlines and characters that don't fit into  the line anymore. Instead we want to move every character one line up  (the top line gets deleted) and start at the beginning of the last line  again. To do this, we add an implementation for the `new_line` method of `Writer`:
+在之前的代码中，我们忽略了换行符，因此没有处理超出一行字符的情况。当换行时，我们想要把每个字符向上移动一行————此时最顶上的一行将被删除————然后在最后一行的起始位置继续打印。要做到这一点，我们要为`Writer`实现一个新的`new_line`方法：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 impl Writer {
@@ -351,11 +351,11 @@ impl Writer {
 }
 ```
 
-We iterate over all screen characters and move each character one row up. Note that the range notation (`..`) is exclusive the upper bound. We also omit the 0th row (the first range starts at `1`) because it's the row that is shifted off screen.
+我们遍历每个屏幕上的字符，把每个字符移动到它上方一行的相应位置。这里，`..`符号是**区间标号**（range notation）的一种，它表示左闭右开的区间，因此不包含它的上界。在外层的枚举中，我们从第1行开始，省略了对第0行的枚举过程————因为这一行应该被移出屏幕，即它将被下一行的字符覆写。
 
-To finish the newline code, we add the `clear_row` method:
+所以我们实现的`clear_row`方法代码如下：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 impl Writer {
@@ -371,7 +371,7 @@ impl Writer {
 }
 ```
 
-This method clears a row by overwriting all of its characters with a space character.
+通过向对应的缓冲区写入空格字符，这个方法能清空一整行的字符位置。
 
 ## A Global Interface
 
