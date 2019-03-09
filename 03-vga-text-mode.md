@@ -373,11 +373,11 @@ impl Writer {
 
 通过向对应的缓冲区写入空格字符，这个方法能清空一整行的字符位置。
 
-## A Global Interface
+## 全局接口
 
-To provide a global writer that can used as an interface from other modules without carrying a `Writer` instance around, we try to create a static `WRITER`:
+编写其它模块时，我们希望无需随身携带`Writer`实例，便能使用它的方法。我们尝试创建一个静态的`WRITER`变量：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 pub static WRITER: Writer = Writer {
@@ -387,7 +387,7 @@ pub static WRITER: Writer = Writer {
 };
 ```
 
-However, if we try to compile it now, the following errors occur:
+我们尝试编译这些代码，却发生了下面的编译错误：
 
 ```
 error[E0015]: calls in statics are limited to constant functions, tuple structs and tuple variants
@@ -415,17 +415,17 @@ error[E0017]: references in statics may only refer to immutable values
   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ statics require immutable values
 ```
 
-To understand what's happening here, we need to know that statics are  initialized at compile time, in contrast to normal variables that are  initialized at run time. The component of the Rust compiler that  evaluates such initialization expressions is called the “[const evaluator](https://rust-lang.github.io/rustc-guide/const-eval.html)”. Its functionality is still limited, but there is ongoing work to expand it, for example in the “[Allow panicking in constants](https://github.com/rust-lang/rfcs/pull/2345)” RFC.
+为了明白现在发生了什么，我们需要知道一点：一般的变量在运行时初始化，而静态变量在编译时初始化。Rust编译器规定了一个称为**常量求值器**（[const evaluator](https://rust-lang.github.io/rustc-guide/const-eval.html)）的组件，它应该在编译时处理这样的初始化工作。虽然它目前的功能较为有限，但对它的扩展工作进展活跃，比如允许在常量中panic的[一篇RFC文档](https://github.com/rust-lang/rfcs/pull/2345)。
 
-The issue about `ColorCode::new` would be solvable by using [`const` functions](https://doc.rust-lang.org/unstable-book/language-features/const-fn.html),  but the fundamental problem here is that Rust's const evaluator is not  able to convert raw pointers to references at compile time. Maybe it  will work someday, but until then, we have to find another solution.
+关于`ColorCode::new`的问题应该能使用**常函数**（[`const` functions](https://doc.rust-lang.org/unstable-book/language-features/const-fn.html)）解决，但常量求值器还存在不完善之处，它还不能在编译时直接转换裸指针到变量的引用。也许未来这段代码能够工作，但在那之前，我们需要寻找另外的解决方案。
 
-### Lazy Statics
+### 延迟初始化
 
-The one-time initialization of statics with non-const functions is a  common problem in Rust. Fortunately, there already exists a good  solution in a crate named [lazy_static](https://docs.rs/lazy_static/1.0.1/lazy_static/). This crate provides a `lazy_static!` macro that defines a lazily initialized `static`. Instead of computing its value at compile time, the `static`  laziliy initializes itself when it's accessed the first time. Thus, the  initialization happens at runtime so that arbitrarily complex  initialization code is possible.
+使用非常函数初始化静态变量是Rust程序员普遍遇到的问题。幸运的是，有一个叫做[lazy_static](https://docs.rs/lazy_static/1.0.1/lazy_static/)的包提供了一个很棒的解决方案：它提供了名为`lazy_static!`的宏，定义了一个**延迟初始化**（lazily initialized）的静态变量；这个变量的值将在第一次使用时计算，而非在编译时计算。这时，变量的初始化过程将在运行时执行，任意的初始化代码——无论简单或复杂——都是能够使用的。
 
-Let's add the `lazy_static` crate to our project:
+现在，我们将`lazy_static`包导入到我们的项目：
 
-```
+```toml
 # in Cargo.toml
 
 [dependencies.lazy_static]
@@ -433,11 +433,11 @@ version = "1.0"
 features = ["spin_no_std"]
 ```
 
-We need the `spin_no_std` feature, since we don't link the standard library.
+在这里，由于程序不连接标准库，我们需要启用`spin_no_std`特性。
 
-With `lazy_static`, we can define our static `WRITER` without problems:
+使用`lazy_static`我们就可以定义一个不出问题的`WRITER`变量：
 
-```
+```rust
 // in src/vga_buffer.rs
 
 use lazy_static::lazy_static;
@@ -451,9 +451,11 @@ lazy_static! {
 }
 ```
 
-However, this `WRITER` is pretty useless since it is immutable. This means that we can't write anything to it (since all the write methods take `&mut self`). One possible solution would be to use a [mutable static](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#accessing-or-modifying-a-mutable-static-variable). But then every read and write to it would be unsafe since it could easily introduce data races and other bad things. Using `static mut` is highly discouraged, there were even proposals to [remove it](https://internals.rust-lang.org/t/pre-rfc-remove-static-mut/1437). But what are the alternatives? We could try to use a immutable static with a cell type like [RefCell](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html#keeping-track-of-borrows-at-runtime-with-refcellt) or even [UnsafeCell](https://doc.rust-lang.org/nightly/core/cell/struct.UnsafeCell.html) that provides [interior mutability](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html). But these types aren't [Sync](https://doc.rust-lang.org/nightly/core/marker/trait.Sync.html) (with good reason), so we can't use them in statics.
+然而，这个`WRITER`可能没有什么用途，因为它目前还是**不可变变量**（immutable variable）：这意味着我们无法向它写入数据，因为所有与写入数据相关的方法都需要实例的可变引用`&mut self`。一种解决方案是使用**可变静态**（[mutable static](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#accessing-or-modifying-a-mutable-static-variable)）的变量，但所有对它的读写操作都被规定为不安全的（unsafe）操作，因为这很容易导致数据竞争或发生其它不好的事情——使用`static mut`极其不被赞成，甚至有一些提案认为[应该将它删除](https://internals.rust-lang.org/t/pre-rfc-remove-static-mut/1437)。也有其它的替代方案，比如可以尝试使用比如[RefCell](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html#keeping-track-of-borrows-at-runtime-with-refcellt)或甚至[UnsafeCell](https://doc.rust-lang.org/nightly/core/cell/struct.UnsafeCell.html)等类型提供的**内部可变性**（[interior mutability](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html)）；但这些类型都被设计为非同步类型，即不满足[Sync](https://doc.rust-lang.org/nightly/core/marker/trait.Sync.html)约束，所以我们不能在静态变量中使用它们。
 
-### Spinlocks
+### 自旋锁
+
+要定义同步的内部可变性，我们往往使用标准库提供的互斥锁类[Mutex](https://doc.rust-lang.org/nightly/std/sync/struct.Mutex.html)，它通过提供当资源被占用时将线程**阻塞**（block）的**互斥条件**（mutual exclusion）实现这一点；但我们初步的内核代码还没有线程和阻塞的概念，我们将不能使用这个类。//todo
 
 To get synchronized interior mutability, users of the standard library can use [Mutex](https://doc.rust-lang.org/nightly/std/sync/struct.Mutex.html).  It provides mutual exclusion by blocking threads when the resource is  already locked. But our basic kernel does not have any blocking support  or even a concept of threads, so we can't use it either. However there  is a really basic kind of mutex in computer science that requires no  operating system features: the [spinlock](https://en.wikipedia.org/wiki/Spinlock).  Instead of blocking, the threads simply try to lock it again and again  in a tight loop and thus burn CPU time until the mutex is free again.
 
