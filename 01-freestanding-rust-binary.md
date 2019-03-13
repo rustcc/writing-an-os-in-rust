@@ -4,7 +4,7 @@
 >
 >译者：洛佳  华中科技大学
 
-# 使用Rust创造操作系统（一）：独立式可执行程序
+# 使用Rust编写操作系统（一）：独立式可执行程序
 
 创建一个不连接标准库的Rust可执行文件，将是我们迈出的第一步。无需底层操作系统的支撑，这将能让在**裸机**（[bare metal](https://en.wikipedia.org/wiki/Bare_machine)）上运行Rust代码成为现实。
 
@@ -14,7 +14,7 @@
 
 实现这一点，意味着我们不能使用[Rust标准库](https://doc.rust-lang.org/std/)的大部分；但还有很多Rust特性是我们依然可以使用的。比如说，我们可以使用[迭代器](https://doc.rust-lang.org/book/ch13-02-iterators.html)、[闭包](https://doc.rust-lang.org/book/ch13-01-closures.html)、[模式匹配](https://doc.rust-lang.org/book/ch06-00-enums.html)、[Option](https://doc.rust-lang.org/core/option/)、[Result](https://doc.rust-lang.org/core/result/index.html)、[字符串格式化](https://doc.rust-lang.org/core/macro.write.html)，当然还有[所有权系统](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html)。这些功能让我们能够编写表达性强、高层抽象的操作系统，而无需操心[未定义行为](https://www.nayuki.io/page/undefined-behavior-in-c-and-cplusplus-programs)和[内存安全](https://tonyarcieri.com/it-s-time-for-a-memory-safety-intervention)。
 
-为了用Rust创造一个操作系统内核，我们需要创建一个独立于操作系统的可执行程序。这样的可执行程序常被称作**独立式可执行程序**（freestanding executable）或**裸机程序**(bare-metal executable)。
+为了用Rust编写一个操作系统内核，我们需要创建一个独立于操作系统的可执行程序。这样的可执行程序常被称作**独立式可执行程序**（freestanding executable）或**裸机程序**(bare-metal executable)。
 
 在这篇文章里，我们将逐步地创建一个独立式可执行程序，并且详细解释为什么每个步骤都是必须的。如果读者只对最终的代码感兴趣，可以跳转到本篇文章的小结部分。
 
@@ -329,4 +329,4 @@ panic = "abort" # 禁用panic时栈展开
 
 ## 下篇预告
 
-下一篇文章要做的事情基于我们这篇文章的成果，它将详细讲述创造一个最小的操作系统内核需要的步骤：如何为特定的平台配置我们的内核，如果使用引导程序启动内核，还有如何把一些特定的字符串打印到屏幕上。
+下一篇文章要做的事情基于我们这篇文章的成果，它将详细讲述编写一个最小的操作系统内核需要的步骤：如何为特定的平台配置我们的内核，如果使用引导程序启动内核，还有如何把一些特定的字符串打印到屏幕上。

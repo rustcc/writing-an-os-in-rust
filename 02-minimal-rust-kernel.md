@@ -4,9 +4,9 @@
 >
 >译者：洛佳  华中科技大学
 
-# 使用Rust创造操作系统（二）：最小化内核
+# 使用Rust编写操作系统（二）：最小化内核
 
-在这篇文章中，我们将基于**x86架构**（the x86 architecture），使用Rust语言，创造一个最小化的64位内核。我们将从上一章中构建的独立式可执行程序开始，构建自己的内核；它将向显示器打印字符串，并能被打包为一个能够引导启动的**磁盘映像**（disk image）。
+在这篇文章中，我们将基于**x86架构**（the x86 architecture），使用Rust语言，编写一个最小化的64位内核。我们将从上一章中构建的独立式可执行程序开始，构建自己的内核；它将向显示器打印字符串，并能被打包为一个能够引导启动的**磁盘映像**（disk image）。
 
 ## 引导启动
 
@@ -32,7 +32,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 每个操作系统都实现自己的引导程序，而这只对单个操作系统有效。为了避免这样的僵局，1995年，**自由软件基金会**（[Free Software Foundation](https://en.wikipedia.org/wiki/Free_Software_Foundation)）颁布了一个开源的引导程序标准——[Multiboot](https://wiki.osdev.org/Multiboot)。这个标准定义了引导程序和操作系统间的统一接口，所以任何适配Multiboot的引导程序，都能用来加载任何同样适配了Multiboot的操作系统。[GNU GRUB](https://en.wikipedia.org/wiki/GNU_GRUB)是一个可供参考的Multiboot实现，它也是最热门的Linux系统引导程序之一。
 
-要创造一款适配Multiboot的内核，我们只需要在内核文件开头，插入被称作**Multiboot头**（[Multiboot header](https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-format)）的数据片段。这让GRUB很容易引导任何操作系统，但是，GRUB和Multiboot标准也有一些可预知的问题：
+要编写一款适配Multiboot的内核，我们只需要在内核文件开头，插入被称作**Multiboot头**（[Multiboot header](https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#OS-image-format)）的数据片段。这让GRUB很容易引导任何操作系统，但是，GRUB和Multiboot标准也有一些可预知的问题：
 
 1. 它们只支持32位的保护模式。这意味着，在引导之后，你依然需要配置你的CPU，让它切换到64位的长模式；
 2. 它们被设计为精简引导程序，而不是精简内核。举个栗子，内核需要以调整过的**默认页长度**（[default page size](https://wiki.osdev.org/Multiboot#Multiboot_2)）被链接，否则GRUB将无法找到内核的Multiboot头。另一个例子是**引导信息**（[boot information](https://www.gnu.org/software/grub/manual/multiboot/multiboot.html#Boot-information-format)），这个包含着大量与架构有关的数据，会在引导启动时，被直接传到操作系统，而不会经过一层清晰的抽象；
@@ -45,7 +45,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 现在我们已经明白电脑是如何启动的，那也是时候编写我们自己的内核了。我们的小目标是，创建一个内核的磁盘映像，它能够在启动时，向屏幕输出一行“Hello World!”；我们的工作将基于上一章构建的独立式可执行程序。
 
-如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要创造的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
+如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要编写的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
 ## 目标配置清单
 

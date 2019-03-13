@@ -4,7 +4,7 @@
 >
 >译者：洛佳  华中科技大学
 
-# 使用Rust创造操作系统（附录二）：禁用SIMD
+# 使用Rust编写操作系统（附录二）：禁用SIMD
 
 **单指令多数据流**（[Single Instruction Multiple Data，SIMD](https://en.wikipedia.org/wiki/SIMD)）指令能够同时对多个**数据字**（data word）执行同一个操作，这能显著地加快程序运行的速度。`x86_64`架构支持下面的SIMD标准：
 
