@@ -14,7 +14,7 @@
 - Double Fault
 - 硬件中断
 - 分页技术简介
-- 更深一层的分页技术
+- 分页技术实现
 
 ### 附录
 - (Done) [禁用红区](./appendix-a-red-zone.md)
