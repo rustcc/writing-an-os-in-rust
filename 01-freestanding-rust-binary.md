@@ -274,7 +274,7 @@ panic = "abort" # 禁用panic时栈展开
 panic = "abort" # 禁用panic时栈展开
 ```
 
-选用任意一个裸机目标来编译。比如对`thumbv7em-none-eabihf`，我们使用以下指令：
+选用任意一个裸机目标来编译。比如对`thumbv7em-none-eabihf`，我们使用以下命令：
 
 ```bash
 cargo build --target thumbv7em-none-eabihf
