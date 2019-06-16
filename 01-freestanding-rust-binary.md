@@ -47,7 +47,7 @@ blog_os
 
 在这里，`Cargo.toml`文件包含了包的**配置**（configuration），比如包的名称、作者、[semver版本](http://semver.org/)和项目依赖项；`src/main.rs`文件包含包的**根模块**（root module）和main函数。我们可以使用`cargo build`来编译这个包，然后在`target/debug`文件夹内找到编译好的`blog_os`二进制文件。
 
-## no_std属性
+### no_std属性
 
 现在我们的包依然隐式地与标准库链接。为了禁用这种链接，我们可以尝试添加[`no_std`属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)：
 
@@ -117,7 +117,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 `eh_personality`语言项标记的函数，将被用于实现**栈展开**（[stack unwinding](http://www.bogotobogo.com/cplusplus/stackunwinding.php)）。在使用标准库的情况下，当panic发生时，Rust将使用栈展开，来运行在栈上活跃的所有变量的**析构函数**（destructor）——这确保了所有使用的内存都被释放，允许调用程序的**父进程**（parent thread）捕获panic，处理并继续运行。但是，栈展开是一个复杂的过程，如Linux的[libunwind](http://www.nongnu.org/libunwind/)或Windows的**结构化异常处理**（[structured exception handling, SEH](https://msdn.microsoft.com/en-us/library/windows/desktop/ms680657(v=vs.85).aspx)），通常需要依赖于操作系统的库；所以我们不在自己编写的操作系统中使用它。
 
-## 禁用栈展开
+### 禁用栈展开
 
 在其它一些情况下，栈展开不是迫切需求的功能；因此，Rust提供了**在panic时中止**（[abort on panic](https://github.com/rust-lang/rust/pull/32900)）的选项。这个选项能禁用栈展开相关的标志信息生成，也因此能缩小生成的二进制程序的长度。有许多方式能打开这个选项，最简单的方式是把下面的几行设置代码加入我们的`Cargo.toml`：
 
@@ -148,7 +148,7 @@ error: requires `start` lang_item
 
 我们的独立式可执行程序并不能访问Rust运行时或`crt0`库，所以我们需要定义自己的入口点。实现一个`start`语言项并不能帮助我们，因为这之后程序依然要求`crt0`库。所以，我们要做的是，直接重写整个`crt0`库和它定义的入口点。
 
-## 重写入口点
+### 重写入口点
 
 要告诉Rust编译器我们不使用预定义的入口点，我们可以添加`#![no_main]`属性。
 
@@ -188,7 +188,7 @@ pub extern "C" fn _start() -> ! {
 
 为了解决这个错误，我们需要告诉链接器，它不应该包含（include）C语言运行环境。我们可以选择提供特定的**链接器参数**（linker argument），也可以选择编译为**裸机目标**（bare metal target）。
 
-## 编译为裸机目标
+### 编译为裸机目标
 
 在默认情况下，Rust尝试适配当前的系统环境，编译可执行程序。举个栗子，如果你使用`x86_64`平台的Windows系统，Rust将尝试编译一个扩展名为`.exe`的Windows可执行程序，并使用`x86_64`指令集。这个环境又被称作你的**宿主系统**（"host" system）。
 
@@ -224,7 +224,7 @@ cargo build --target thumbv7em-none-eabihf
 
 我们将使用这个方法编写自己的操作系统内核。我们不将编译到`thumbv7em-none-eabihf`，而是使用描述`x86_64`环境的**自定义目标**（[custom target](https://doc.rust-lang.org/rustc/targets/custom.html)）。在下篇文章中，我们将详细描述一些相关的细节。
 
-## 链接器参数
+### 链接器参数
 
 我们也可以选择不编译到裸机系统，因为传递特定的参数也能解决链接器错误问题。虽然我们不将在后文中使用这个方法，为了文章编写的完整性，这里也提供一个解决方案。
 
