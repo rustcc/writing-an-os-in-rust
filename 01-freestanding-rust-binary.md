@@ -165,13 +165,7 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-读者也许会注意到，我们移除了`main`函数。原因很显然，既然没有底层已有的运行时调用它，`main`函数也失去了存在的必要性。现在，我们要重写操作系统的入口点。
-
-截至本节，我们的程序仍然需要在操作系统环境中运行，所以入口点的编写风格暂时因操作系统而异。建议读者先阅读Linux系统下的编写风格，尽管使用的操作系统可能不是Linux：因为我们在下一节编写内核时，将通过这种风格编写入口点。
-
-## Linux系统
-
-在Linux系统中，默认的入口点被命名为`_start`：编译程序时，**链接器**（linker）会尝试寻找称作这个名字的函数，并将其设置为程序的入口点。所以，为了重写入口点，我们可以这样定义一个`_start`函数：
+读者也许会注意到，我们移除了`main`函数。原因很显然，既然没有底层已有的运行时调用它，`main`函数也失去了存在的必要性。为了重写操作系统的入口点，我们转而编写一个`_start`函数：
 
 ```rust
 #[no_mangle]
@@ -180,77 +174,59 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-非常重要的一点是，我们使用`no_mangle`标记函数以禁用**名称重整**（[name mangling](https://en.wikipedia.org/wiki/Name_mangling)），否则编译器就可能最终生成一个叫做`_ZN3blog_os4_start7hb173fedf945531caE` 的函数，无法让链接器辨别。为了与操作系统兼容，我们还需要将函数标记为`extern "C"`，说明这个函数生成为[C语言的调用约定](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用约定。
+我们使用`no_mangle`标记这个函数，来对它禁用**名称重整**（[name mangling](https://en.wikipedia.org/wiki/Name_mangling)）——这确保Rust编译器输出一个名为`_start`的函数；否则，编译器可能最终生成名为`_ZN3blog_os4_start7hb173fedf945531caE`的函数，无法让链接器正确辨别。
 
-与前文的`panic`函数类似，返回值类型为`!`说明这是一个发散函数，或者说不允许返回。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如说操作系统的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
+我们还将函数标记为`extern "C"`，告诉编译器这个函数应当使用[C语言的调用约定](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用约定。函数名为`_start`，是因为大多数系统默认使用这个名字作为入口点名称。
 
-如果我们现在就编译这段程序，会出来一大段不太好看的错误：
+与前文的`panic`函数类似，这个函数的返回值类型为`!`——它定义了一个发散函数，或者说一个不允许返回的函数。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如操作系统提供的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）函数。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
 
-```
-error: linking with `cc` failed: exit code: 1
-  |
-  = note: "cc" "-Wl,--as-needed" "-Wl,-z,noexecstack" "-m64" "-L"
-    "/…/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
-    "/…/blog_os/target/debug/deps/blog_os-f7d4ca7f1e3c3a09.0.o" […]
-    "-o" "/…/blog_os/target/debug/deps/blog_os-f7d4ca7f1e3c3a09"
-    "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-nodefaultlibs"
-    "-L" "/…/blog_os/target/debug/deps"
-    "-L" "/…/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib"
-    "-Wl,-Bstatic"
-    "/…/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib/libcore-dd5bba80e2402629.rlib"
-    "-Wl,-Bdynamic"
-  = note: /usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x12): undefined reference to `__libc_csu_fini'
-          /usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x19): undefined reference to `__libc_csu_init'
-          /usr/lib/gcc/x86_64-linux-gnu/5/../../../x86_64-linux-gnu/Scrt1.o: In function `_start':
-          (.text+0x25): undefined reference to `__libc_start_main'
-          collect2: error: ld returned 1 exit status
+如果我们现在编译这段程序，会出来一大段不太好看的**链接器错误**（linker error）。
+
+## 链接器错误
+
+**链接器**（linker）是一个程序，它将生成的目标文件组合为一个可执行文件。不同的操作系统如Windows、macOS、Linux，规定了不同的可执行文件格式，因此也各有自己的链接器，抛出不同的错误；但这些错误的根本原因还是相同的：链接器的默认配置假定程序依赖于C语言的运行时环境，但我们的程序并不依赖于它。
+
+为了解决这个错误，我们需要告诉链接器，它不应该包含（include）C语言运行环境。我们可以选择提供特定的**链接器参数**（linker argument），也可以选择编译为**裸机目标**（bare metal target）。
+
+## 编译为裸机目标
+
+在默认情况下，Rust尝试适配当前的系统环境，编译可执行程序。举个栗子，如果你使用`x86_64`平台的Windows系统，Rust将尝试编译一个扩展名为`.exe`的Windows可执行程序，并使用`x86_64`指令集。这个环境又被称作你的**宿主系统**（"host" system）。
+
+为了描述不同的环境，Rust使用一个称为**目标三元组**（target triple）的字符串。要查看当前系统的目标三元组，我们可以运行`rustc --version --verbose`：
 
 ```
-
-出现这段错误的原因是，编译器依然会尝试链接C语言环境的启动程序，它依赖于Rust的C语言标准库实现库（libc），而在`no_std`上下文中我们不会链接这个实现库。所以我们应该丢弃C语言环境的启动程序。我们可以把`-nostartfiles`选项传给链接器，来实现这一点。
-
-通过cargo把选项传给链接器，可以使用`cargo rustc`指令。这个指令的功能和`cargo build`相似，但它允许向Rust语言编译器`rustc`直接传送选项。`rustc`有一个`-Z pre-link-arg`选项，它能把参数传给链接器。所以，稍作组合后，我们的编译指令应该长这样：
-
-```
-> cargo rustc -- -Z pre-link-arg=-nostartfiles
-```
-
-注意的是，所有带`-Z`的标记都是不稳定的（unstable），所以这个指令只对nightly版本的Rust有效。现在我们的库终于被编译为一个独立式可执行程序了。祝贺你！
-
-## Windows系统
-
-在Windows系统中，[与使用的**子系统**（subsystem）有关](https://docs.microsoft.com/en-us/cpp/build/reference/entry-entry-point-symbol)，链接器要求程序提供两个入口点。对`CONSOLE`子系统，我们还需要一个名为`mainCRTStartup`的入口点，它将调用一个称作`main`的函数。和Linux系统类似，我们将使用`no_mangle`标记这两个重写的入口点：
-
-```rust
-#[no_mangle]
-pub extern "C" fn mainCRTStartup() -> ! {
-    main();
-}
-
-#[no_mangle]
-pub extern "C" fn main() -> ! {
-    loop {}
-}
+rustc 1.35.0-nightly (474e7a648 2019-04-07)
+binary: rustc
+commit-hash: 474e7a6486758ea6fc761893b1a49cd9076fb0ab
+commit-date: 2019-04-07
+host: x86_64-unknown-linux-gnu
+release: 1.35.0-nightly
+LLVM version: 8.0
 ```
 
-## macOS
+上面这段输出来自一个`x86_64`平台下的Linux系统。我们能看到，`host`字段的值为三元组`x86_64-unknown-linux-gnu`，它包含了CPU架构`x86_64`、供应商`unknown`、操作系统`linux`和[二进制接口](https://en.wikipedia.org/wiki/Application_binary_interface)`gnu`。
 
-事实上，[macOS不支持静态链接二进制库](https://developer.apple.com/library/content/qa/qa1118/_index.html)，所以我们必须要链接到`libSystem`库。编写入口点，入口点的名称为`main`：
+Rust编译器尝试为当前系统的三元组编译，并假定底层有一个类似于Windows或Linux的操作系统提供C语言运行环境——这将导致链接器错误。所以，为了避免这个错误，我们可以另选一个底层没有操作系统的运行环境。
 
-```rust
-#[no_mangle]
-pub extern "C" fn main() -> ! {
-    loop {}
-}
+这样的运行环境被称作裸机环境，例如目标三元组`thumbv7em-none-eabihf`描述了一个ARM**嵌入式系统**（[embedded system](https://en.wikipedia.org/wiki/Embedded_system)）。我们暂时不需要了解它的细节，只需要知道这个环境底层没有操作系统——这是由三元组中的`none`描述的。要编译为这个目标，我们需要使用rustup添加它：
+
+```
+rustup target add thumbv7em-none-eabihf
 ```
 
-要使用编译并链接到`libSystem`，我们可以使用下面的命令：
+这行命令将为目标下载一个标准库和core库。这之后，我们就能为这个目标构建独立式可执行程序了：
 
-```bash
-> cargo rustc -- -Z pre-link-arg=-lSystem
 ```
+cargo build --target thumbv7em-none-eabihf
+```
+
+我们传递了`--target`参数，来为裸机目标系统**交叉编译**（[cross compile](https://en.wikipedia.org/wiki/Cross_compiler)）我们的程序。我们的目标并不包括操作系统，所以链接器不会试着链接C语言运行环境，因此构建过程成功完成，不会产生链接器错误。
+
+我们将使用这个方法编写自己的操作系统内核。我们不将编译到`thumbv7em-none-eabihf`，而是使用描述`x86_64`环境的**自定义目标**（[custom target](https://doc.rust-lang.org/rustc/targets/custom.html)）。在下篇文章中，我们将详细描述一些相关的细节。
+
+## 链接器参数
+
+我们也可以选择不编译到裸机系统，因为传递特定的参数也能解决链接器错误问题。虽然我们不将在后文中使用这个方法，为了文章编写的完整性，这里也提供一个解决方案。
 
 ## 小结
 
@@ -264,12 +240,6 @@ pub extern "C" fn main() -> ! {
 
 use core::panic::PanicInfo;
 
-/// 这个函数将在panic时被调用
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    loop {}
-}
-
 // Linux系统:
 #[no_mangle] // 不重整函数名
 pub extern "C" fn _start() -> ! {
@@ -278,21 +248,9 @@ pub extern "C" fn _start() -> ! {
     loop {}
 }
 
-// Windows系统:
-#[no_mangle]
-pub extern "C" fn mainCRTStartup() -> ! {
-    main();
-}
-
-#[no_mangle]
-pub extern "C" fn main() -> ! {
-    loop {}
-}
-
-// macOS:
-
-#[no_mangle]
-pub extern "C" fn main() -> ! {
+/// 这个函数将在panic时被调用
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 ```
@@ -314,19 +272,14 @@ panic = "abort" # 禁用panic时栈展开
 panic = "abort" # 禁用panic时栈展开
 ```
 
-编译指令如下：
+选用任意一个裸机目标来编译。比如对`thumbv7em-none-eabihf`，我们使用以下指令：
 
 ```bash
-# Linux
-> cargo rustc -- -Z pre-link-arg=-nostartfiles
-# Windows
-> cargo build
-# macOS
-> cargo rustc -- -Z pre-link-arg=-lSystem
+cargo build --target thumbv7em-none-eabihf
 ```
 
-要注意的是，现在我们的代码只是一个Rust编写的独立式可执行程序的一个例子。运行这个二进制程序还需要很多前提，比如一个已经加载完毕的栈。所以为了真正运行这样的程序，我们还有很多事情需要做。
+要注意的是，现在我们的代码只是一个Rust编写的独立式可执行程序的一个例子。运行这个二进制程序还需要很多准备，比如在`_start`函数之前需要一个已经预加载完毕的栈。所以为了真正运行这样的程序，我们还有很多事情需要做。
 
 ## 下篇预告
 
-下一篇文章要做的事情基于我们这篇文章的成果，它将详细讲述编写一个最小的操作系统内核需要的步骤：如何为特定的平台配置我们的内核，如果使用引导程序启动内核，还有如何把一些特定的字符串打印到屏幕上。
+下一篇文章要做的事情基于我们这篇文章的成果，它将详细讲述编写一个最小的操作系统内核需要的步骤：如何配置特定的编译目标，如何将可执行程序与引导程序拼接，以及如何把一些特定的字符串打印到屏幕上。
