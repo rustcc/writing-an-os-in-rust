@@ -1,6 +1,6 @@
 # writing-an-os-in-rust
 
-《使用Rust编写操作系统》
+《使用Rust编写操作系统》简体中文翻译
 
 ## 目录
 
@@ -16,7 +16,11 @@
 - 分页技术实现
 
 ### 附录
-- (Done) [禁用红区](./appendix-a-red-zone.md)
-- (Done) [禁用SIMD](./appendix-b-disable-simd.md)
+- (Pending) [链接器参数](./appendix-a-linker-arguments.md)
+- (Done) [禁用红区](./appendix-b-red-zone.md)
+- (Done) [禁用SIMD](./appendix-c-disable-simd.md)
 - (Pending) 在安卓系统上构建
 
+## 译者
+
+洛佳 (@luojia65)，华中科技大学
