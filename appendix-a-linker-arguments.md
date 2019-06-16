@@ -54,7 +54,7 @@ cargo rustc -- -C link-arg=/ENTRY:_start
 
 这里我们能从参数的格式中看到，Windows系统下的链接器与Linux下的有较大不同。
 
-运行命令，我们得到了不同的链接器错误：
+运行命令，我们得到不同的链接器错误：
 
 ```
 error: linking with `link.exe` failed: exit code: 1221
