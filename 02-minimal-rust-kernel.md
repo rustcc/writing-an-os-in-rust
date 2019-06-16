@@ -196,19 +196,37 @@ cargo install cargo-xbuild
 
 ```bash
 > cargo xbuild --target x86_64-blog_os.json
-   Compiling core v0.0.0 (file:///…/rust/src/libcore)
-    Finished release [optimized] target(s) in 52.75 secs
-   Compiling compiler_builtins v0.1.0 (file:///…/rust/src/libcompiler_builtins)
-    Finished release [optimized] target(s) in 3.92 secs
-   Compiling alloc v0.0.0 (/tmp/xargo.9I97eR3uQ3Cq)
-    Finished release [optimized] target(s) in 7.61s
+   Compiling core v0.0.0 (/…/rust/src/libcore)
+   Compiling compiler_builtins v0.1.5
+   Compiling rustc-std-workspace-core v1.0.0 (/…/rust/src/tools/rustc-std-workspace-core)
+   Compiling alloc v0.0.0 (/tmp/xargo.PB7fj9KZJhAI)
+    Finished release [optimized + debuginfo] target(s) in 45.18s
    Compiling blog_os v0.1.0 (file:///…/blog_os)
     Finished dev [unoptimized + debuginfo] target(s) in 0.29 secs
 ```
 
 我们能看到，`cargo xbuild`为我们自定义的目标交叉编译了`core`、`compiler_builtin`和`alloc`三个部件。这些部件使用了大量的**不稳定特性**（unstable features），所以只能在[nightly版本的Rust编译器](https://os.phil-opp.com/freestanding-rust-binary/#installing-rust-nightly)中工作。这之后，`cargo xbuild`成功地编译了我们的`blog_os`包。
 
-现在我们可以为裸机编译内核了；但是，我们提供给引导程序的入口点`_start`函数还是空的。我们可以添加一些东西进去，比如——
+现在我们可以为裸机编译内核了；但是，我们提供给引导程序的入口点`_start`函数还是空的。我们可以添加一些东西进去，不过我们可以先做一些优化工作。
+
+### 设置默认目标
+
+为了避免每次使用`cargo xbuild`时传递`--target`参数，我们可以覆写默认的编译目标。我们创建一个名为`.cargo/config`的[cargo配置文件](https://doc.rust-lang.org/cargo/reference/config.html)，添加下面的内容：
+
+```toml
+# in .cargo/config
+
+[build]
+target = "x86_64-blog_os.json"
+```
+
+这里的配置告诉`cargo`在没有显式声明目标的情况下，使用我们提供的`x86_64-blog_os.json`作为目标配置。这意味着保存后，我们可以直接使用
+
+```
+cargo build
+```
+
+来编译我们的内核。[官方提供的一份文档](https://doc.rust-lang.org/cargo/reference/config.html)中有对cargo配置文件更详细的说明。
 
 ### 向屏幕打印字符
 
@@ -260,7 +278,7 @@ pub extern "C" fn _start() -> ! {
 # in Cargo.toml
 
 [dependencies]
-bootloader = "0.3"
+bootloader = "0.6.0"
 ```
 
 只添加引导程序为依赖项，并不足以创建一个可引导的磁盘映像；我们还需要内核编译完成之后，将内核和引导程序组合在一起。然而，截至目前，原生的cargo并不支持在编译完成后添加其它步骤（详见[这个issue](https://github.com/rust-lang/cargo/issues/545)）。
@@ -268,18 +286,20 @@ bootloader = "0.3"
 为了解决这个问题，我们建议使用`bootimage`工具——它将会在内核编译完毕后，将它和引导程序组合在一起，最终创建一个能够引导的磁盘映像。我们可以使用下面的命令来安装这款工具：
 
 ```bash
-cargo install bootimage --version "^0.5.0"
+cargo install bootimage --version "^0.7.3"
 ```
 
-参数`^0.5.0`是一个**脱字号条件**（[caret requirement](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements)），它的意义是“0.5.0版本或一个兼容0.5.0的新版本”。这意味着，如果这款工具发布了修复bug的版本`0.5.1`或`0.5.2`，cargo将会自动选择最新的版本，因为它依然兼容`0.5.0`；但cargo不会选择`0.6.0`，因为这个版本被认为并不和`0.5.x`系列版本兼容。需要注意的是，`Cargo.toml`中定义的依赖包版本都默认是脱字号条件：刚才我们指定`bootloader`包的版本时，遵循的就是这个原则。
+参数`^0.7.3`是一个**脱字号条件**（[caret requirement](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements)），它的意义是“0.7.3版本或一个兼容0.7.3的新版本”。这意味着，如果这款工具发布了修复bug的版本`0.7.4`或`0.7.5`，cargo将会自动选择最新的版本，因为它依然兼容`0.7.x`；但cargo不会选择`0.8.0`，因为这个版本被认为并不和`0.7.x`系列版本兼容。需要注意的是，`Cargo.toml`中定义的依赖包版本都默认是脱字号条件：刚才我们指定`bootloader`包的版本时，遵循的就是这个原则。
 
-成功安装`bootimage`工具后，创建一个可引导的磁盘映像就变得相当容易。我们来输入下面的命令：
+为了运行`bootimage`以及编译引导程序，我们需要安装rustup模块`llvm-tools-preview`——我们可以使用`rustup component add llvm-tools-preview`来安装这个工具。
+
+成功安装`bootimage`后，创建一个可引导的磁盘映像就变得相当容易。我们来输入下面的命令：
 
 ```bash
-> bootimage build --target x86_64-blog_os.json
+> cargo bootimage
 ```
 
-可以看到的是，`bootimage`工具开始使用`cargo xbuild`编译你的内核，所以它将增量编译我们修改后的源码。在这之后，它会编译内核的引导程序，这将花费一定的时间；但和所有其它依赖包相似的是，在首次编译后，产生的二进制文件将被缓存下来——这将显著地加速后续的编译过程。最终，`bootimage`将把内核和引导程序组合为一个可引导的磁盘映像。
+可以看到的是，`bootimage`工具开始使用`cargo xbuild`编译你的内核，所以它将增量编译我们修改后的源码。在这之后，它会编译内核的引导程序，这可能将花费一定的时间；但和所有其它依赖包相似的是，在首次编译后，产生的二进制文件将被缓存下来——这将显著地加速后续的编译过程。最终，`bootimage`将把内核和引导程序组合为一个可引导的磁盘映像。
 
 运行这行命令之后，我们应该能在`target/x86_64-blog_os/debug`目录内找到我们的映像文件`bootimage-blog_os.bin`。我们可以在虚拟机内启动它，也可以刻录到U盘上以便在真机上启动。（需要注意的是，因为文件格式不同，这里的bin文件并不是一个光驱映像，所以将它刻录到光盘不会起作用。）
 
@@ -291,18 +311,7 @@ cargo install bootimage --version "^0.5.0"
 
 当机器启动时，引导程序将会读取并解析拼接在其后的ELF文件。这之后，它将把程序片段映射到**分页表**（page table）中的**虚拟地址**（virtual address），清零**BSS段**（BSS segment），还将创建一个栈。最终它将读取**入口点地址**（entry point address）——我们程序中`_start`函数的位置——并跳转到这个位置。
 
-要让编译内核更方便，我们还可以对`bootimage`工具做一些配置。向`Cargo.toml`文件添加`[package.metadata.bootimage]`配置项，插入并配置`default-target`为先前创建的目标配置清单；这样我们编译内核时，就无需手动传递`--target`参数了。需要添加的配置如下：
-
-```toml
-# in Cargo.toml
-
-[package.metadata.bootimage]
-default-target = "x86_64-blog_os.json"
-```
-
-保存配置以后，我们就可以省略`--target`参数，直接使用`bootimage build`编译内核。
-
-### 启动内核
+### 在QEMU上启动内核
 
 现在我们可以在虚拟机中启动内核了。为了在[QEMU](https://www.qemu.org/)中启动内核，我们使用下面的命令：
 
@@ -312,13 +321,7 @@ default-target = "x86_64-blog_os.json"
 
 ![](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
 
-或者更简单地，你可以使用`bootimage`工具的`run`命令：
-
-```bash
-> bootimage run
-```
-
-在默认情况下，它将使用和前文相同的命令启动QEMU。如果要传递额外的QEMU选项，可以在输入`--`之后传递进去：比如，`bootimage run -- --help`能显示QEMU帮助。事实上，通过修改`Cargo.toml`中`package.metadata.bootimage`配置项内的`run-command`配置，我们也能够修改默认运行的命令——[README文件](https://github.com/rust-osdev/bootimage/blob/master/Readme.md)和命令`bootimage --help`都能指导我们该怎么做。
+我们可以看到，屏幕上显示了“Hello World!”字符串。
 
 ### 在真机上运行内核
 
@@ -329,6 +332,26 @@ default-target = "x86_64-blog_os.json"
 ```
 
 在这里，`sdX`是U盘的**设备名**（[device name](https://en.wikipedia.org/wiki/Device_file)）。请注意，**在选择设备名的时候一定要极其小心，因为目标设备上已有的数据将全部被擦除**。
+
+写入到U盘之后，你可以在真机上通过引导启动你的系统。视情况而定，你可能需要在BIOS中打开特殊的启动菜单，或者调整启动顺序。需要注意的是，`bootloader`包暂时不支持UEFI，所以我们并不能在UEFI机器上启动。
+
+### 使用`cargo run`
+
+要让在QEMU中运行内核更轻松，我们可以设置在cargo配置文件中设置`runner`配置项：
+
+```toml
+# in .cargo/config
+
+[target.'cfg(target_os = "none")']
+runner = "bootimage runner"
+```
+
+在这里，`target.'cfg(target_os = "none")'`//The target.'cfg(target_os = "none")' table applies to all targets that have set the "os" field of their target configuration file to "none". This includes our x86_64-blog_os.json target. The runner key specifies the command that should be invoked for cargo run. The command is run after a successful build with the executable path passed as first argument. See the cargo documentation for more details.
+
+The bootimage runner command is specifically designed to be usable as a runner executable. It links the given executable with the project's bootloader dependency and then launches QEMU. See the Readme of bootimage for more details and possible configuration options.
+
+Now we can use cargo xrun to compile our kernel and boot it in QEMU. Like xbuild, the xrun subcommand builds the sysroot crates before invoking the actual cargo command. The subcommand is also provided by cargo-xbuild, so you don't need to install an additional tool.
+
 
 ## 下篇预告
 
