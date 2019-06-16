@@ -1,10 +1,10 @@
-> 原文：https://os.phil-opp.com/unit-testing/
+> 原文：https://os.phil-opp.com/testing/
 >
 > 原作者：@phil-opp
 >
 > 译者：洛佳  华中科技大学
 
-# 使用Rust编写操作系统（四）：单元测试
+# 使用Rust编写操作系统（四）：内核测试
 
 这篇文章中，我们将使用Rust内置的测试框架，探索单元测试`no_std`程序的方式。我们将调整我们的代码，以便使用`cargo test`命令；我们还将为上篇文章中编写的VGA缓冲区模块添加一些基础的单元测试。
 

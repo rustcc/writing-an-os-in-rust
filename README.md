@@ -8,8 +8,7 @@
 - (Done) [独立式可执行程序](./01-freestanding-rust-binary.md)
 - (Done) [最小化内核](./02-minimal-rust-kernel.md)
 - (Done) [VGA字符模式](./03-vga-text-mode.md)
-- (Pending) [单元测试](./04-unit-testing.md)
-- (Pending) [集成测试](./05-integration-tests.md)
+- (Pending) [内核测试](./04-testing.md)
 - CPU异常
 - Double Fault
 - 硬件中断
