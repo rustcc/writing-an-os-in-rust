@@ -16,7 +16,7 @@
 - 分页技术实现
 
 ### 附录
-- (Pending) [链接器参数](./appendix-a-linker-arguments.md)
+- (Done) [链接器参数](./appendix-a-linker-arguments.md)
 - (Done) [禁用红区](./appendix-b-red-zone.md)
 - (Done) [禁用SIMD](./appendix-c-disable-simd.md)
 - (Pending) 在安卓系统上构建
