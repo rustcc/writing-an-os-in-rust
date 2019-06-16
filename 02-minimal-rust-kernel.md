@@ -16,7 +16,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 在这篇文章中，我们暂时只提供BIOS固件的引导启动方式。
 
-## BIOS启动
+### BIOS启动
 
 几乎所有的x86硬件系统都支持BIOS启动，这也包含新式的、基于UEFI、用**模拟BIOS**（emulated BIOS）的方式向后兼容的硬件系统。这可以说是一件好事情，因为无论是上世纪还是现在的硬件系统，你都只需编写同样的引导启动逻辑；但这种兼容性有时也是BIOS引导启动最大的缺点，因为这意味着在系统启动前，你的CPU必须先进入一个16位系统兼容的**实模式**（[real mode](https://en.wikipedia.org/wiki/Real_mode)），这样1980年代古老的引导固件才能够继续使用。
 
@@ -28,7 +28,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 编写一个引导程序并不是一个简单的任务，因为这需要使用汇编语言，而且必须经过许多意图并不显然的步骤——比如，把一些**魔术数字**（magic number）写入某个寄存器。因此，我们不会讲解如何编写自己的引导程序，而是推荐[bootimage工具](https://github.com/rust-osdev/bootimage)——它能够自动而方便地为你的内核准备一个引导程序。
 
-## Multiboot标准
+### Multiboot标准
 
 每个操作系统都实现自己的引导程序，而这只对单个操作系统有效。为了避免这样的僵局，1995年，**自由软件基金会**（[Free Software Foundation](https://en.wikipedia.org/wiki/Free_Software_Foundation)）颁布了一个开源的引导程序标准——[Multiboot](https://wiki.osdev.org/Multiboot)。这个标准定义了引导程序和操作系统间的统一接口，所以任何适配Multiboot的引导程序，都能用来加载任何同样适配了Multiboot的操作系统。[GNU GRUB](https://en.wikipedia.org/wiki/GNU_GRUB)是一个可供参考的Multiboot实现，它也是最热门的Linux系统引导程序之一。
 
@@ -47,7 +47,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要编写的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
-## 目标配置清单
+### 目标配置清单
 
 通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（[target triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple)）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（[Application Binary Interface, ABI](https://stackoverflow.com/a/2456882)）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持[许多不同的目标三元组](https://forge.rust-lang.org/platform-support.html)，包括安卓系统对应的`arm-linux-androideabi`和[WebAssembly使用的`wasm32-unknown-unknown`](https://www.hellorust.com/setup/wasm-target/)。
 
@@ -141,7 +141,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 }
 ```
 
-## 编译内核
+### 编译内核
 
 要编译我们的内核，我们将使用Linux系统的编写风格（这可能是LLVM的默认风格）。这意味着，我们需要把前一篇文章中编写的入口点重命名为`_start`：
 
@@ -182,7 +182,7 @@ error[E0463]: can't find crate for `compiler_builtins`
 
 通常状况下，`core`库以**预编译库**（precompiled library）的形式与Rust编译器一同发布——这时，`core`库只对支持的宿主系统有效，而我们自定义的目标系统无效。如果我们想为其它系统编译代码，我们需要为这些系统重新编译整个`core`库。
 
-## Cargo xbuild
+### Cargo xbuild
 
 这就是为什么我们需要[`cargo xbuild`工具](https://github.com/rust-osdev/cargo-xbuild)。这个工具封装了`cargo build`；但不同的是，它将自动交叉编译`core`库和一些**编译器内建库**（compiler built-in libraries）。我们可以用下面的命令安装它：
 
@@ -210,7 +210,7 @@ cargo install cargo-xbuild
 
 现在我们可以为裸机编译内核了；但是，我们提供给引导程序的入口点`_start`函数还是空的。我们可以添加一些东西进去，比如——
 
-## 向屏幕打印字符
+### 向屏幕打印字符
 
 要做到这一步，最简单的方式是写入**VGA字符缓冲区**（[VGA text buffer](https://en.wikipedia.org/wiki/VGA-compatible_text_mode)）：这是一段映射到VGA硬件的特殊内存片段，包含着显示在屏幕上的内容。通常情况下，它能够存储25行、80列共2000个**字符单元**（character cell）；每个字符单元能够显示一个ASCII字符，也能设置这个字符的**前景色**（foreground color）和**背景色**（background color）。输出到屏幕的字符大概长这样：
 
@@ -246,9 +246,13 @@ pub extern "C" fn _start() -> ! {
 
 在这样的前提下，我们希望最小化`unsafe `语句块的使用。使用Rust语言，我们能够将不安全操作将包装为一个安全的抽象模块。举个栗子，我们可以创建一个VGA缓冲区类型，把所有的不安全语句封装起来，来确保从类型外部操作时，无法写出不安全的代码：通过这种方式，我们只需要最少的`unsafe`语句块来确保我们不破坏**内存安全**（[memory safety](https://en.wikipedia.org/wiki/Memory_safety)）。在下一篇文章中，我们将会创建这样的VGA缓冲区封装。
 
-## 创建引导映像
+## 启动内核
 
-既然我们已经有了一个能够打印字符的可执行程序，现在是时候把它打包为一个**引导映像**（boot image）了。根据我们从上文学到的知识，我们首先需要一个引导程序，它将初始化CPU并加载我们的内核。
+既然我们已经有了一个能够打印字符的可执行程序，是时候把它运行起来试试看了。首先，我们将编译完毕的内核与引导程序链接，来创建一个引导映像；这之后，我们可以在QEMU虚拟机中运行它，或者通过U盘在真机上运行。
+
+### 创建引导映像
+
+要将可执行程序转换为**可引导的映像**（bootable disk image），我们需要把它和引导程序链接。这里，引导程序将负责初始化CPU并加载我们的内核。
 
 编写引导程序并不容易，所以我们不编写自己的引导程序，而是使用已有的[`bootloader`](https://crates.io/crates/bootloader)包；无需依赖于C语言，这个包基于Rust代码和内联汇编，实现了一个五脏俱全的BIOS引导程序。为了用它启动我们的内核，我们需要将它添加为一个依赖项，在`Cargo.toml`中添加下面的代码：
 
@@ -298,7 +302,7 @@ default-target = "x86_64-blog_os.json"
 
 保存配置以后，我们就可以省略`--target`参数，直接使用`bootimage build`编译内核。
 
-## 启动内核
+### 启动内核
 
 现在我们可以在虚拟机中启动内核了。为了在[QEMU](https://www.qemu.org/)中启动内核，我们使用下面的命令：
 
@@ -316,7 +320,7 @@ default-target = "x86_64-blog_os.json"
 
 在默认情况下，它将使用和前文相同的命令启动QEMU。如果要传递额外的QEMU选项，可以在输入`--`之后传递进去：比如，`bootimage run -- --help`能显示QEMU帮助。事实上，通过修改`Cargo.toml`中`package.metadata.bootimage`配置项内的`run-command`配置，我们也能够修改默认运行的命令——[README文件](https://github.com/rust-osdev/bootimage/blob/master/Readme.md)和命令`bootimage --help`都能指导我们该怎么做。
 
-## 在真机上运行内核
+### 在真机上运行内核
 
 我们也可以使用dd工具把内核写入U盘，以便在真机上启动。可以输入下面的命令：
 
