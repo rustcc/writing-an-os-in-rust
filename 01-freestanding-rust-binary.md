@@ -138,9 +138,9 @@ panic = "abort"
 error: requires `start` lang_item
 ```
 
-这里，编译器要求我们提供另一个语言项。
-
 ## start语言项
+
+这里，我们的程序遗失了`start`语言项，它将定义一个程序的**入口点**（entry point）。
 
 我们通常会认为，当运行一个程序时，首先被调用的是`main`函数。但是，大多数语言都拥有一个**运行时系统**（[runtime system](https://en.wikipedia.org/wiki/Runtime_system)），它通常为**垃圾回收**（garbage collection）或**绿色线程**（software threads，或green threads）服务，如Java的GC或Go语言的协程（goroutine）；这个运行时系统需要在main函数前启动，因为它需要让程序初始化。
 
