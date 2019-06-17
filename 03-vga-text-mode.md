@@ -93,6 +93,7 @@ pub enum Color {
 // in src/vga_buffer.rs
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(transparent)]
 struct ColorCode(u8);
 
 impl ColorCode {
@@ -102,7 +103,7 @@ impl ColorCode {
 }
 ```
 
-这里，`ColorCode`类型包装了一个完整的颜色代码字节，它包含前景色和背景色信息。和`Color`类型类似，我们为它生成`Copy`和`Debug`等一系列trait。
+这里，`ColorCode`类型包装了一个完整的颜色代码字节，它包含前景色和背景色信息。和`Color`类型类似，我们为它生成`Copy`和`Debug`等一系列trait。为了确保`ColorCode`和`u8`有完全相同的内存布局，我们添加[repr(transparent)标记](https://doc.rust-lang.org/nomicon/other-reprs.html#reprtransparent)。
 
 ## 字符缓冲区
 
@@ -121,12 +122,13 @@ struct ScreenChar {
 const BUFFER_HEIGHT: usize = 25;
 const BUFFER_WIDTH: usize = 80;
 
+#[repr(transparent)]
 struct Buffer {
     chars: [[ScreenChar; BUFFER_WIDTH]; BUFFER_HEIGHT],
 }
 ```
 
-在内存布局层面，Rust并不保证按顺序布局成员变量。因此，我们需要使用`#[repr(C)]`标记结构体；这将按C语言约定的顺序布局它的成员变量，让我们能正确地映射内存片段。
+在内存布局层面，Rust并不保证按顺序布局成员变量。因此，我们需要使用`#[repr(C)]`标记结构体；这将按C语言约定的顺序布局它的成员变量，让我们能正确地映射内存片段。对`Buffer`类型，我们再次使用`repr(transparent)`，来确保类型和它的单个成员有相同的内存布局。
 
 为了输出字符到屏幕，我们来创建一个`Writer`类型：
 
@@ -221,7 +223,18 @@ pub fn print_something() {
 
 这个函数首先创建一个指向`0xb8000`地址VGA缓冲区的`Writer`。实现这一点，我们需要编写的代码可能看起来有点奇怪：首先，我们把整数`0xb8000`强制转换为一个可变的**裸指针**（[raw pointer](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）；之后，通过运算符`*`，我们将这个裸指针解引用；最后，我们再通过`&mut`，再次获得它的可变借用。这些转换需要**`unsafe`语句块**（[unsafe block](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html)），因为编译器并不能保证这个裸指针是有效的。
 
-然后它将字节 `b'H'` 写入缓冲区内. 前缀 `b`创建了一个字节常量（[byte literal](https://doc.rust-lang.org/reference/tokens.html#byte-literals)），表示单个ASCII码字符；通过尝试写入 `"ello "` 和 `"Wörld!"`，我们可以测试 `write_string` 方法和其后对无法打印字符的处理逻辑。当我们尝试在`src/main.rs`中的`_start`函数内调用`vga_buffer::print_something`时，黄色的`Hello W■■rld!`字符串将会被打印在屏幕的左下角：
+然后它将字节 `b'H'` 写入缓冲区内. 前缀 `b`创建了一个字节常量（[byte literal](https://doc.rust-lang.org/reference/tokens.html#byte-literals)），表示单个ASCII码字符；通过尝试写入 `"ello "` 和 `"Wörld!"`，我们可以测试 `write_string` 方法和其后对无法打印字符的处理逻辑。为了观察输出，我们需要在`_start`函数中调用`print_something`方法：
+
+```rust
+// in src/main.rs
+#[no_mangle]
+pub extern "C" fn _start() -> ! {
+    vga_buffer::print_something();
+    loop {}
+}
+```
+
+编译运行后，黄色的`Hello W■■rld!`字符串将会被打印在屏幕的左下角：
 
 ![QEMU output with a yellow Hello W■■rld! in the lower left corner](https://os.phil-opp.com/vga-text-mode/vga-hello.png)
 
