@@ -7,9 +7,9 @@
 ### 正文
 | 序号 | 标题 | 链接 | 状态 | 长度 |
 |-----|-----|-----|-----|-----|
-| 一 | 独立式可执行程序 | [点我](./01-freestanding-rust-binary.md) | Done | 14千字 |
-| 二 | 最小化内核 | [点我](./02-minimal-rust-kernel.md) | Done | 36千字 |
-| 三 | VGA字符模式 | [点我](./03-vga-text-mode.md) | Done | 27千字 |
+| 一 | 独立式可执行程序 | [点我](./01-freestanding-rust-binary.md) | Done | 11千字 |
+| 二 | 最小化内核 | [点我](./02-minimal-rust-kernel.md) | Done | 19千字 |
+| 三 | VGA字符模式 | [点我](./03-vga-text-mode.md) | Done | 21千字 |
 | 四 | 内核测试 | [点我](./04-testing.md) | Pending | - |
 | 五 | CPU异常 | [点我](./05-cpu-exceptions.md) | Pending | - | 
 | 六 | Double Fault | 待添加 | Pending | - | 
