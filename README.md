@@ -12,8 +12,8 @@
 - CPU异常
 - Double Fault
 - 硬件中断
-- 分页技术简介
-- 分页技术实现
+- 内存分页简介
+- 内存分页实现
 
 ### 附录
 - (Done) [链接器参数](./appendix-a-linker-arguments.md)
