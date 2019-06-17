@@ -26,7 +26,7 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 引导程序必须决定内核的位置，并将内核加载到内存。引导程序还需要将CPU从16位的实模式，先切换到32位的**保护模式**（[protected mode](https://en.wikipedia.org/wiki/Protected_mode)），最终切换到64位的**长模式**（[long mode](https://en.wikipedia.org/wiki/Long_mode)）：此时，所有的64位寄存器和整个**主内存**（main memory）才能被访问。引导程序的第三个作用，是从BIOS查询特定的信息，并将其传递到内核；如查询和传递**内存映射表**（memory map）。
 
-编写一个引导程序并不是一个简单的任务，因为这需要使用汇编语言，而且必须经过许多意图并不显然的步骤——比如，把一些**魔术数字**（magic number）写入某个寄存器。因此，我们不会讲解如何编写自己的引导程序，而是推荐[bootimage工具](https://github.com/rust-osdev/bootimage)——它能够自动而方便地为你的内核准备一个引导程序。
+编写一个引导程序并不是一个简单的任务，因为这需要使用汇编语言，而且必须经过许多意图并不明显的步骤——比如，把一些**魔术数字**（magic number）写入某个寄存器。因此，我们不会讲解如何编写自己的引导程序，而是推荐[bootimage工具](https://github.com/rust-osdev/bootimage)——它能够自动而方便地为你的内核准备一个引导程序。
 
 ### Multiboot标准
 
@@ -354,7 +354,7 @@ cargo install bootimage --version "^0.7.3"
 runner = "bootimage runner"
 ```
 
-在这里，`target.'cfg(target_os = "none")'`筛选了三元组中操作系统设置为`"none"`的所有编译目标——这将包含我们的`x86_64-blog_os.json`目标。另外，`runner`的值规定了运行`cargo run`使用的命令；这个命令将在成功编译后执行，而且会传递可执行文件的路径为第一个参数。[官方提供的cargo文档](https://doc.rust-lang.org/cargo/reference/config.html)讲述了更多的细节。
+在这里，`target.'cfg(target_os = "none")'`筛选了三元组中宿主系统设置为`"none"`的所有编译目标——这将包含我们的`x86_64-blog_os.json`目标。另外，`runner`的值规定了运行`cargo run`使用的命令；这个命令将在成功编译后执行，而且会传递可执行文件的路径为第一个参数。[官方提供的cargo文档](https://doc.rust-lang.org/cargo/reference/config.html)讲述了更多的细节。
 
 命令`bootimage runner`由`bootimage`包提供，参数格式经过特殊设计，可以用于`runner`命令。它将给定的可执行文件与项目的引导程序依赖项链接，然后在QEMU中启动它。`bootimage`包的[README文档](https://github.com/rust-osdev/bootimage)提供了更多细节和可以传入的配置参数。
 
