@@ -123,7 +123,7 @@ Nightly版本的编译器允许我们在源码的开头插入**特性标签**（
 
 `features`配置项被用来启用或禁用某个目标**CPU特征**（CPU feature）。通过在它们前面添加`-`号，我们将`mmx`和`sse`特征禁用；添加前缀`+`号，我们启用了`soft-float`特征。
 
-`mmx`和`sse`特征决定了是否支持**单指令多数据流**（[Single Instruction Multiple Data，SIMD](https://en.wikipedia.org/wiki/SIMD)）相关指令，这些指令常常能显著地提高程序层面的性能。然而，体积庞大的SIMD寄存器，可能会在内核层面，造成较大的性能影响：因为每次硬件中断时，内核不得不备份整个庞大的SIMD寄存器。为解决这个问题，我们对内核禁用SIMD（但这不意味着禁用内核之上的应用程序的SIMD支持）。
+`mmx`和`sse`特征决定了是否支持**单指令多数据流**（[Single Instruction Multiple Data，SIMD](https://en.wikipedia.org/wiki/SIMD)）相关指令，这些指令常常能显著地提高程序层面的性能。然而，在内核中使用庞大的SIMD寄存器，可能会造成较大的性能影响：因为每次程序中断时，内核不得不储存整个庞大的SIMD寄存器以备恢复——这意味着，对每个硬件中断或系统调用，完整的SIMD状态必须存到主存中。由于SIMD状态可能相当大（512~1600个字节），而中断可能时常发生，这些额外的存储与恢复操作可能显著地影响效率。为解决这个问题，我们对内核禁用SIMD（但这不意味着禁用内核之上的应用程序的SIMD支持）。
 
 禁用SIMD产生的一个问题是，`x86_64`架构的浮点数指针运算默认依赖于SIMD寄存器。我们的解决方法是，启用`soft-float`特征，它将使用基于整数的软件功能，模拟浮点数指针运算。
 
@@ -319,7 +319,7 @@ cargo install bootimage --version "^0.7.3"
 
 当机器启动时，引导程序将会读取并解析拼接在其后的ELF文件。这之后，它将把程序片段映射到**分页表**（page table）中的**虚拟地址**（virtual address），清零**BSS段**（BSS segment），还将创建一个栈。最终它将读取**入口点地址**（entry point address）——我们程序中`_start`函数的位置——并跳转到这个位置。
 
-### 在QEMU上启动内核
+### 在QEMU中启动内核
 
 现在我们可以在虚拟机中启动内核了。为了在[QEMU](https://www.qemu.org/)中启动内核，我们使用下面的命令：
 
@@ -329,7 +329,7 @@ cargo install bootimage --version "^0.7.3"
 
 ![](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
 
-我们可以看到，屏幕上显示了“Hello World!”字符串。
+我们可以看到，屏幕窗口已经显示出“Hello World!”字符串。祝贺你！
 
 ### 在真机上运行内核
 
