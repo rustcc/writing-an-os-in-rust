@@ -51,7 +51,7 @@ mod vga_buffer;
 
 我们的模块暂时不需要添加子模块，所以我们将它创建为`src/vga_buffer.rs`文件。除非另有说明，本文中的代码都保存到这个文件中。
 
-## 颜色
+### 颜色
 
 首先，我们使用Rust的**枚举**（enum）表示一种颜色：
 
@@ -105,7 +105,7 @@ impl ColorCode {
 
 这里，`ColorCode`类型包装了一个完整的颜色代码字节，它包含前景色和背景色信息。和`Color`类型类似，我们为它生成`Copy`和`Debug`等一系列trait。为了确保`ColorCode`和`u8`有完全相同的内存布局，我们添加[repr(transparent)标记](https://doc.rust-lang.org/nomicon/other-reprs.html#reprtransparent)。
 
-## 字符缓冲区
+### 字符缓冲区
 
 现在，我们可以添加更多的结构体，来描述屏幕上的字符和整个字符缓冲区：
 
@@ -144,7 +144,7 @@ pub struct Writer {
 
 我们将让这个`Writer`类型将字符写入屏幕的最后一行，并在一行写满或收到换行符`\n`的时候，将所有的字符向上位移一行。`column_position`变量将跟踪光标在最后一行的位置。当前字符的前景和背景色将由`color_code`变量指定；另外，我们存入一个VGA字符缓冲区的可变借用到`buffer`变量中。需要注意的是，这里我们对借用使用**显式生命周期**（[explicit lifetime](https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#lifetime-annotation-syntax)），告诉编译器这个借用在何时有效：我们使用**`'static`生命周期**（['static lifetime](https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html#the-static-lifetime)），意味着这个借用应该在整个程序的运行期间有效；这对一个全局有效的VGA字符缓冲区来说，是非常合理的。
 
-## 打印字符
+### 打印字符
 
 现在我们可以使用`Writer`类型来更改缓冲区内的字符了。首先，为了写入一个ASCII码字节，我们创建这样的函数：
 
@@ -240,13 +240,13 @@ pub extern "C" fn _start() -> ! {
 
 需要注意的是，`ö`字符被打印为两个`■`字符。这是因为在[UTF-8](http://www.fileformat.info/info/unicode/utf8.htm)编码下，字符`ö`是由两个字节表述的——而这两个字节并不处在可打印的ASCII码字节范围之内。事实上，这是UTF-8编码的基本特点之一：**如果一个字符占用多个字节，那么每个组成它的独立字节都不是有效的ASCII码字节**（the individual bytes of multi-byte values are never valid ASCII）。
 
-## Volatile
+### 易失操作
 
 我们刚才看到，自己想要输出的信息被正确地打印到屏幕上。然而，未来Rust编译器更暴力的优化可能让这段代码不按预期工作。
 
-产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[volatile](https://en.wikipedia.org/wiki/Volatile_(computer_programming))操作。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
+产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[易失操作](https://en.wikipedia.org/wiki/Volatile_(computer_programming))。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
 
-为了在我们的VGA缓冲区中使用volatile写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**包装类型**（wrapping type）和它的`read`、`write`方法；这些方法包装了`core::ptr`内的[read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html)和[write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) 函数，从而保证读操作或写操作不会被编译器优化。
+为了在我们的VGA缓冲区中使用易失的写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**包装类型**（wrapping type）和它的`read`、`write`方法；这些方法包装了`core::ptr`内的[read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html)和[write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) 函数，从而保证读操作或写操作不会被编译器优化。
 
 要添加`volatile`包为项目的**依赖项**（dependency），我们可以在`Cargo.toml`文件的`dependencies`中添加下面的代码：
 
@@ -299,7 +299,7 @@ impl Writer {
 
 正如代码所示，我们不再使用普通的`=`赋值，而使用了`write`方法：这能确保编译器不再优化这个写入操作。
 
-## 格式化宏
+### 格式化宏
 
 支持Rust提供的**格式化宏**（formatting macros）也是一个相当棒的主意。通过这种途径，我们可以轻松地打印不同类型的变量，如整数或浮点数。为了支持它们，我们需要实现[`core::fmt::Write`](https://doc.rust-lang.org/nightly/core/fmt/trait.Write.html) trait；要实现它，唯一需要提供的方法是`write_str`，它和我们先前编写的`write_string`方法差别不大，只是返回值类型变成了`fmt::Result`：
 
