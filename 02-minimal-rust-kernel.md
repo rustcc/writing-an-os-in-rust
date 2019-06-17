@@ -57,7 +57,7 @@ Nightly版本的编译器允许我们在源码的开头插入**特性标签**（
 
 ### 目标配置清单
 
-通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（[target triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple)）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（[Application Binary Interface, ABI](https://stackoverflow.com/a/2456882)）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持[许多不同的目标三元组](https://forge.rust-lang.org/platform-support.html)，包括安卓系统对应的`arm-linux-androideabi`和[WebAssembly使用的`wasm32-unknown-unknown`](https://www.hellorust.com/setup/wasm-target/)。
+通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（[target triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple)）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（[Application Binary Interface, ABI](https://stackoverflow.com/a/2456882)）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持[许多不同的目标三元组](https://forge.rust-lang.org/platform-support.html)，包括安卓系统对应的`arm-linux-androideabi`和[WebAssembly使用的wasm32-unknown-unknown](https://www.hellorust.com/setup/wasm-target/)。
 
 为了编写我们的目标系统，鉴于我们需要做一些特殊的配置（比如没有依赖的底层操作系统），[已经支持的目标三元组](https://forge.rust-lang.org/platform-support.html)都不能满足我们的要求。幸运的是，只需使用一个JSON文件，Rust便允许我们定义自己的目标系统；这个文件常被称作**目标配置清单**（target specification）。比如，一个描述`x86_64-unknown-linux-gnu`目标系统的配置清单大概长这样：
 
@@ -192,7 +192,7 @@ error[E0463]: can't find crate for `compiler_builtins`
 
 ### Cargo xbuild
 
-这就是为什么我们需要[`cargo xbuild`工具](https://github.com/rust-osdev/cargo-xbuild)。这个工具封装了`cargo build`；但不同的是，它将自动交叉编译`core`库和一些**编译器内建库**（compiler built-in libraries）。我们可以用下面的命令安装它：
+这就是为什么我们需要[cargo xbuild工具](https://github.com/rust-osdev/cargo-xbuild)。这个工具封装了`cargo build`；但不同的是，它将自动交叉编译`core`库和一些**编译器内建库**（compiler built-in libraries）。我们可以用下面的命令安装它：
 
 ```bash
 cargo install cargo-xbuild
@@ -228,7 +228,7 @@ cargo install cargo-xbuild
 target = "x86_64-blog_os.json"
 ```
 
-这里的配置告诉`cargo`在没有显式声明目标的情况下，使用我们提供的`x86_64-blog_os.json`作为目标配置。这意味着保存后，我们可以直接使用
+这里的配置告诉`cargo`在没有显式声明目标的情况下，使用我们提供的`x86_64-blog_os.json`作为目标配置。这意味着保存后，我们可以直接使用：
 
 ```
 cargo build
@@ -264,7 +264,7 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-在这段代码中，我们预先定义了一个**字节字符串**（byte string）类型的**静态变量**（static variable），名为`HELLO`。我们首先将整数`0xb8000`**转换**（cast）为一个**裸指针**（[raw pointer](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）。这之后，我们迭代`HELLO`的每个字节，使用[`enumerate`](https://doc.rust-lang.org/core/iter/trait.Iterator.html#method.enumerate)获得一个额外的序号变量`i`。在`for`语句的循环体中，我们使用[`offset`](https://doc.rust-lang.org/std/primitive.pointer.html#method.offset)偏移裸指针，解引用它，来将字符串的每个字节和对应的颜色字节——`0xb`代表淡青色——写入内存位置。
+在这段代码中，我们预先定义了一个**字节字符串**（byte string）类型的**静态变量**（static variable），名为`HELLO`。我们首先将整数`0xb8000`**转换**（cast）为一个**裸指针**（[raw pointer](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）。这之后，我们迭代`HELLO`的每个字节，使用[enumerate](https://doc.rust-lang.org/core/iter/trait.Iterator.html#method.enumerate)获得一个额外的序号变量`i`。在`for`语句的循环体中，我们使用[offset](https://doc.rust-lang.org/std/primitive.pointer.html#method.offset)偏移裸指针，解引用它，来将字符串的每个字节和对应的颜色字节——`0xb`代表淡青色——写入内存位置。
 
 要注意的是，所有的裸指针内存操作都被一个**unsafe语句块**（[unsafe block](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html)）包围。这是因为，此时编译器不能确保我们创建的裸指针是有效的；一个裸指针可能指向任何一个你内存位置；直接解引用并写入它，也许会损坏正常的数据。使用`unsafe`语句块时，程序员其实在告诉编译器，自己保证语句块内的操作是有效的。事实上，`unsafe`语句块并不会关闭Rust的安全检查机制；它允许你多做的事情[只有四件](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#unsafe-superpowers)。
 
@@ -280,7 +280,7 @@ pub extern "C" fn _start() -> ! {
 
 要将可执行程序转换为**可引导的映像**（bootable disk image），我们需要把它和引导程序链接。这里，引导程序将负责初始化CPU并加载我们的内核。
 
-编写引导程序并不容易，所以我们不编写自己的引导程序，而是使用已有的[`bootloader`](https://crates.io/crates/bootloader)包；无需依赖于C语言，这个包基于Rust代码和内联汇编，实现了一个五脏俱全的BIOS引导程序。为了用它启动我们的内核，我们需要将它添加为一个依赖项，在`Cargo.toml`中添加下面的代码：
+编写引导程序并不容易，所以我们不编写自己的引导程序，而是使用已有的[bootloader](https://crates.io/crates/bootloader)包；无需依赖于C语言，这个包基于Rust代码和内联汇编，实现了一个五脏俱全的BIOS引导程序。为了用它启动我们的内核，我们需要将它添加为一个依赖项，在`Cargo.toml`中添加下面的代码：
 
 ```toml
 # in Cargo.toml
@@ -354,12 +354,11 @@ cargo install bootimage --version "^0.7.3"
 runner = "bootimage runner"
 ```
 
-在这里，`target.'cfg(target_os = "none")'`//The target.'cfg(target_os = "none")' table applies to all targets that have set the "os" field of their target configuration file to "none". This includes our x86_64-blog_os.json target. The runner key specifies the command that should be invoked for cargo run. The command is run after a successful build with the executable path passed as first argument. See the cargo documentation for more details.
+在这里，`target.'cfg(target_os = "none")'`筛选了三元组中操作系统设置为`"none"`的所有编译目标——这将包含我们的`x86_64-blog_os.json`目标。另外，`runner`的值规定了运行`cargo run`使用的命令；这个命令将在成功编译后执行，而且会传递可执行文件的路径为第一个参数。[官方提供的cargo文档](https://doc.rust-lang.org/cargo/reference/config.html)讲述了更多的细节。
 
-The bootimage runner command is specifically designed to be usable as a runner executable. It links the given executable with the project's bootloader dependency and then launches QEMU. See the Readme of bootimage for more details and possible configuration options.
+命令`bootimage runner`由`bootimage`包提供，参数格式经过特殊设计，可以用于`runner`命令。它将给定的可执行文件与项目的引导程序依赖项链接，然后在QEMU中启动它。`bootimage`包的[README文档](https://github.com/rust-osdev/bootimage)提供了更多细节和可以传入的配置参数。
 
-Now we can use cargo xrun to compile our kernel and boot it in QEMU. Like xbuild, the xrun subcommand builds the sysroot crates before invoking the actual cargo command. The subcommand is also provided by cargo-xbuild, so you don't need to install an additional tool.
-
+现在我们可以使用`cargo xrun`来编译内核并在QEMU中启动了。和`xbuild`类似，`xrun`子命令将在调用cargo命令前编译内核所需的包。这个子命令也由`cargo-xbuild`工具提供，所以你不需要安装额外的工具。
 
 ## 下篇预告
 
