@@ -234,7 +234,6 @@ cargo build --target thumbv7em-none-eabihf
 
 use core::panic::PanicInfo;
 
-// Linux系统:
 #[no_mangle] // 不重整函数名
 pub extern "C" fn _start() -> ! {
     // 因为编译器会寻找一个名为`_start`的函数，所以这个函数就是入口点
