@@ -9,7 +9,7 @@
 - (Done) [最小化内核](./02-minimal-rust-kernel.md)
 - (Done) [VGA字符模式](./03-vga-text-mode.md)
 - (Pending) [内核测试](./04-testing.md)
-- CPU异常
+- (Pending) [CPU异常](./05-cpu-exceptions.md)
 - Double Fault
 - 硬件中断
 - 内存分页简介
