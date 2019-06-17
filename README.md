@@ -5,15 +5,17 @@
 ## 目录
 
 ### 正文
-- (Done) [独立式可执行程序](./01-freestanding-rust-binary.md)
-- (Done) [最小化内核](./02-minimal-rust-kernel.md)
-- (Done) [VGA字符模式](./03-vga-text-mode.md)
-- (Pending) [内核测试](./04-testing.md)
-- (Pending) [CPU异常](./05-cpu-exceptions.md)
-- Double Fault
-- 硬件中断
-- 内存分页简介
-- 内存分页实现
+| 编号 | 名称 | 链接 | 状态 | 长度 |
+|-----|-----|-----|-----|-----|
+| 01 | 独立式可执行程序 | [点我](./01-freestanding-rust-binary.md) | Done | 14千字 |
+| 02 | 最小化内核 | [点我](./02-minimal-rust-kernel.md) | Done | 36千字 |
+| 03 | VGA字符模式 | [点我](./03-vga-text-mode.md) | Done | 27千字 |
+| 04 | 内核测试 | [点我](./04-testing.md) | Pending | - |
+| 05 | CPU异常 | [点我](./05-cpu-exceptions.md) | Pending | - | 
+| 06 | Double Fault | 待添加 | Pending | - | 
+| 07 | 硬件中断 | 待添加 | Pending | - | 
+| 08 | 内存分页简介 | 待添加 | Pending | - | 
+| 09 | 内存分页实现 | 待添加 | Pending | - | 
 
 ### 附录
 - (Done) [链接器参数](./appendix-a-linker-arguments.md)
