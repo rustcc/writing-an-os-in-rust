@@ -47,6 +47,14 @@ x86架构支持两种固件标准：**BIOS**（[Basic Input/Output System](https
 
 如果读者还有印象的话，在上一章，我们使用`cargo`构建了一个独立的二进制程序；但这个程序依然基于特定的操作系统平台：因平台而异，我们需要定义不同名称的函数，且使用不同的编译指令。这是因为在默认情况下，`cargo`会为特定的**宿主系统**（host system）构建源码，比如为你正在运行的系统构建源码。这并不是我们想要的，因为我们的内核不应该基于另一个操作系统——我们想要编写的，就是这个操作系统。确切地说，我们想要的是，编译为一个特定的**目标系统**（target system）。
 
+## 安装 Nightly Rust
+
+Rust语言有三个**发行频道**（release channel），分别是stable、beta和nightly。《Rust程序设计语言》中对这三个频道的区别解释得很详细，可以前往[这里](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)看一看。为了搭建一个操作系统，我们需要一些只有nightly会提供的实验性功能，所以我们需要安装一个nightly版本的Rust。
+
+要管理安装好的Rust，我强烈建议使用[rustup](https://www.rustup.rs/)：它允许你同时安装nightly、beta和stable版本的编译器，而且让更新Rust变得容易。你可以输入`rustup override add nightly`来选择在当前目录使用nightly版本的Rust。或者，你也可以在项目根目录添加一个名称为`rust-toolchain`、内容为`nightly`的文件。要检查你是否已经安装了一个nightly，你可以运行`rustc --version`：返回的版本号末尾应该包含`-nightly`。
+
+Nightly版本的编译器允许我们在源码的开头插入**特性标签**（feature flag），来自由选择并使用大量实验性的功能。举个栗子，要使用实验性的[内联汇编（asm!宏）](https://doc.rust-lang.org/nightly/unstable-book/language-features/asm.html)，我们可以在`main.rs`的顶部添加`#![feature(asm)]`。要注意的是，这样的实验性功能**不稳定**（unstable），意味着未来的Rust版本可能会修改或移除这些功能，而不会有预先的警告过渡。因此我们只有在绝对必要的时候，才应该使用这些特性。
+
 ### 目标配置清单
 
 通过`--target`参数，`cargo`支持不同的目标系统。这个目标系统可以使用一个**目标三元组**（[target triple](https://clang.llvm.org/docs/CrossCompilation.html#target-triple)）来描述，它描述了CPU架构、平台供应者、操作系统和**应用程序二进制接口**（[Application Binary Interface, ABI](https://stackoverflow.com/a/2456882)）。比方说，目标三元组`x86_64-unknown-linux-gnu`描述一个基于`x86_64`架构CPU的、没有明确的平台供应者的linux系统，它遵循GNU风格的ABI。Rust支持[许多不同的目标三元组](https://forge.rust-lang.org/platform-support.html)，包括安卓系统对应的`arm-linux-androideabi`和[WebAssembly使用的`wasm32-unknown-unknown`](https://www.hellorust.com/setup/wasm-target/)。

@@ -18,17 +18,9 @@
 
 在这篇文章里，我们将逐步地创建一个独立式可执行程序，并且详细解释为什么每个步骤都是必须的。如果读者只对最终的代码感兴趣，可以跳转到本篇文章的小结部分。
 
-## 安装 Nightly Rust
-
-Rust语言有三个**发行频道**（release channel），分别是stable、beta和nightly。《Rust程序设计语言》中对这三个频道的区别解释得很详细，可以前往[这里](https://doc.rust-lang.org/book/appendix-07-nightly-rust.html)看一看。为了搭建一个操作系统，我们需要一些只有nightly会提供的实验性功能，所以我们需要安装一个nightly版本的Rust。
-
-要管理安装好的Rust，我强烈建议使用[rustup](https://www.rustup.rs/)：它允许你同时安装nightly、beta和stable版本的编译器，而且让更新Rust变得容易。你可以输入`rustup override add nightly`来选择在当前目录使用nightly版本的Rust。或者，你也可以在项目根目录添加一个名称为`rust-toolchain`、内容为`nightly`的文件。要检查你是否已经安装了一个nightly，你可以运行`rustc --version`：返回的版本号末尾应该包含`-nightly`。
-
-Nightly版本的编译器允许我们在源码的开头插入**特性标签**（feature flag），来自由选择并使用大量实验性的功能。举个栗子，要使用实验性的[内联汇编（asm!宏）](https://doc.rust-lang.org/nightly/unstable-book/language-features/asm.html)，我们可以在`main.rs`的顶部添加`#![feature(asm)]`。要注意的是，这样的实验性功能**不稳定**（unstable），意味着未来的Rust版本可能会修改或移除这些功能，而不会有预先的警告过渡。因此我们只有在绝对必要的时候，才应该使用这些特性。
-
 ## 禁用标准库
 
-在默认情况下，所有的Rust**包**（crate）都会链接**标准库**（[standard library](https://doc.rust-lang.org/std/)），而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[`no_std`属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
+在默认情况下，所有的Rust**包**（crate）都会链接**标准库**（[standard library](https://doc.rust-lang.org/std/)），而标准库依赖于操作系统功能，如线程、文件系统、网络。标准库还与**Rust的C语言标准库实现库**（libc）相关联，它也是和操作系统紧密交互的。既然我们的计划是编写自己的操作系统，我们就可以不使用任何与操作系统相关的库——因此我们必须禁用**标准库自动引用**（automatic inclusion）。使用[no_std属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)可以实现这一点。
 
 我们可以从创建一个新的cargo项目开始。最简单的办法是使用下面的命令：
 
@@ -49,7 +41,7 @@ blog_os
 
 ### no_std属性
 
-现在我们的包依然隐式地与标准库链接。为了禁用这种链接，我们可以尝试添加[`no_std`属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)：
+现在我们的包依然隐式地与标准库链接。为了禁用这种链接，我们可以尝试添加[no_std属性](https://doc.rust-lang.org/book/first-edition/using-rust-without-the-standard-library.html)：
 
 ```rust
 // main.rs
@@ -71,7 +63,7 @@ error: cannot find macro `println!` in this scope
   |     ^^^^^^^
 ```
 
-出现这个错误的原因是，[`println!`宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖于标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向**标准输出**（[standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)）打印字符，它依赖于特殊的文件描述符，而这是由操作系统提供的特性。
+出现这个错误的原因是，[println!宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖于标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向**标准输出**（[standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)）打印字符，它依赖于特殊的文件描述符，而这是由操作系统提供的特性。
 
 所以我们可以移除这行代码，使用一个空的main函数再次尝试编译：
 
@@ -107,11 +99,11 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-类型为[`PanicInfo`](https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html)的参数包含了panic发生的文件名、代码行数和可选的错误信息。这个函数从不返回，所以他被标记为**发散函数**（[diverging function](https://doc.rust-lang.org/book/first-edition/functions.html#diverging-functions)）。发散函数的返回类型称作**Never类型**（["never" type](https://doc.rust-lang.org/nightly/std/primitive.never.html)），记为`!`。对这个函数，我们目前能做的事情很少，所以我们只需编写一个无限循环`loop {}`。
+类型为[PanicInfo](https://doc.rust-lang.org/nightly/core/panic/struct.PanicInfo.html)的参数包含了panic发生的文件名、代码行数和可选的错误信息。这个函数从不返回，所以他被标记为**发散函数**（[diverging function](https://doc.rust-lang.org/book/first-edition/functions.html#diverging-functions)）。发散函数的返回类型称作**Never类型**（["never" type](https://doc.rust-lang.org/nightly/std/primitive.never.html)），记为`!`。对这个函数，我们目前能做的事情很少，所以我们只需编写一个无限循环`loop {}`。
 
 ## eh_personality语言项
 
-语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[`Copy`](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)）——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`属性将它定义为了一个语言项，达到与编译器联系的目的。
+语言项是一些编译器需求的特殊函数或类型。举例来说，Rust的[Copy](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html) trait是一个这样的语言项，告诉编译器哪些类型需要遵循**复制语义**（[copy semantics](https://doc.rust-lang.org/nightly/core/marker/trait.Copy.html)）——当我们查找`Copy` trait的[实现](https://github.com/rust-lang/rust/blob/485397e49a02a3b7ff77c17e4a3f16c653925cb3/src/libcore/marker.rs#L296-L299)时，我们会发现，一个特殊的`#[lang = "copy"]`属性将它定义为了一个语言项，达到与编译器联系的目的。
 
 我们可以自己实现语言项，但这只应该是最后的手段：目前来看，语言项是高度不稳定的语言细节实现，它们不会经过编译期类型检查（所以编译器甚至不确保它们的参数类型是否正确）。幸运的是，我们有更稳定的方式，来修复上面的语言项错误。
 
@@ -129,7 +121,7 @@ panic = "abort"
 panic = "abort"
 ```
 
-这些选项能将**`dev`配置**（dev profile）和**`release`配置**（release profile）的panic策略设为`abort`。`dev`配置适用于`cargo build`，而`release`配置适用于`cargo build --release`。现在编译器应该不再要求我们提供`eh_personality`语言项实现。
+这些选项能将**dev配置**（dev profile）和**release配置**（release profile）的panic策略设为`abort`。`dev`配置适用于`cargo build`，而`release`配置适用于`cargo build --release`。现在编译器应该不再要求我们提供`eh_personality`语言项实现。
 
 现在我们已经修复了出现的两个错误，可以信心满满地开始编译了。然而，尝试编译运行后，一个新的错误出现了：
 
