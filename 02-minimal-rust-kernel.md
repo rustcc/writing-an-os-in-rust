@@ -182,11 +182,12 @@ pub extern "C" fn _start() -> ! {
 ```
 > cargo build --target x86_64-blog_os.json
 
-error[E0463]: can't find crate for `core` OR
+error[E0463]: can't find crate for `core` 
+（或者是下面的错误）
 error[E0463]: can't find crate for `compiler_builtins`
 ```
 
-哇哦，编译失败了！输出的错误告诉我们，Rust编译器找不到`core`和`compiler_builtins`包；而所有`no_std`上下文都隐式地链接到这两个包。[`core`包](https://doc.rust-lang.org/nightly/core/index.html)包含基础的Rust类型，如`Result`、`Option`和迭代器等；[`compiler_builtins`包](https://github.com/rust-lang-nursery/compiler-builtins)提供LLVM需要的许多底层操作，比如`memcpy`。
+哇哦，编译失败了！输出的错误告诉我们，Rust编译器找不到`core`或者`compiler_builtins`包；而所有`no_std`上下文都隐式地链接到这两个包。[`core`包](https://doc.rust-lang.org/nightly/core/index.html)包含基础的Rust类型，如`Result`、`Option`和迭代器等；[`compiler_builtins`包](https://github.com/rust-lang-nursery/compiler-builtins)提供LLVM需要的许多底层操作，比如`memcpy`。
 
 通常状况下，`core`库以**预编译库**（precompiled library）的形式与Rust编译器一同发布——这时，`core`库只对支持的宿主系统有效，而我们自定义的目标系统无效。如果我们想为其它系统编译代码，我们需要为这些系统重新编译整个`core`库。
 
