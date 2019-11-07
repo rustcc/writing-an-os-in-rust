@@ -52,7 +52,7 @@ error[E0463]: can't find crate for `test`
 
 ### 自定义测试框架
 
-幸运的是，Rust支持通过使用不稳定的**自定义测试框架**（[custom_test_frameworks]） 功能来替换默认的测试框架。该功能不需要额外的库，因此在 `#[no_std]`环境中它也可以工作。它的工作原理是收集所有标注了 `#[test_case]`属性的函数，然后将这个测试函数的列表作为参数传递给用户指定的runner函数。因此，它实现了对测试过程的最大控制。
+幸运的是，Rust支持通过使用不稳定的**自定义测试框架**（[`custom_test_frameworks`]） 功能来替换默认的测试框架。该功能不需要额外的库，因此在 `#[no_std]`环境中它也可以工作。它的工作原理是收集所有标注了 `#[test_case]`属性的函数，然后将这个测试函数的列表作为参数传递给用户指定的runner函数。因此，它实现了对测试过程的最大控制。
 
 [`custom_test_frameworks`]: https://doc.rust-lang.org/unstable-book/language-features/custom-test-frameworks.html
 
@@ -163,12 +163,12 @@ test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 
  `isa-debug-exit`设备的功能非常简单。当一个 `value`写入`iobase`指定的端口时，它会导致QEMU以**退出状态**（[exit status]）`(value << 1) | 1`退出。也就是说，当我们向端口写入`0`时，QEMU将以退出状态`(0 << 1) | 1 = 1`退出，而当我们向端口写入`1`时，它将以退出状态`(1 << 1) | 1 = 3`退出。
 
-[exit status] : https://en.wikipedia.org/wiki/Exit_status
+[exit status]: https://en.wikipedia.org/wiki/Exit_status
 
 这里我们使用 [`x86_64`] crate提供的抽象，而不是手动调用`in`或`out`指令。为了添加对该crate的依赖，我们可以将其添加到我们的 `Cargo.toml`中的 `dependencies` 小节中去:
 
 
-[`x86_64`]: https://docs.rs/x86_64/0.7.0/x86_64/
+[`x86_64`]: https://docs.rs/x86_64/0.7.5/x86_64/
 
 ```toml
 # in Cargo.toml
@@ -591,7 +591,7 @@ fn panic(info: &PanicInfo) -> ! {
 
 由于集成测试都是单独的可执行文件，所以我们需要再次提供所有的crate属性(`no_std`, `no_main`, `test_runner`, 等等)。我们还需要创建一个新的入口点函数`_start`，用于调用测试入口函数`test_main`。我们不需要任何的`cfg(test)` attributes(属性)，因为集成测试的二进制文件在非测试模式下根本不会被编译构建。 
 
-这里我们采用[`unimplemented`]宏，该宏会在`test_runner`以一个占位符的形式panic，并进入`loop`循环作为`panic`后的处理(fix wanted)。理想情况下，我们希望能向我们在`main.rs`里所做的一样使用`serial_println`宏和`exit_qemu`函数来实现这个函数。但问题是，由于这些测试的构建和我们的`main.rs`的可执行文件是完全独立的，我们没有办法使用这些函数。
+这里我们采用[`unimplemented`]宏，充当`test_runner`暂未实现的占位符；添加简单的`loop {}`循环，作为`panic`处理器的内容。理想情况下，我们希望能向我们在`main.rs`里所做的一样使用`serial_println`宏和`exit_qemu`函数来实现这个函数。但问题是，由于这些测试的构建和我们的`main.rs`的可执行文件是完全独立的，我们没有办法使用这些函数。
 
 [`unimplemented`]: https://doc.rust-lang.org/core/macro.unimplemented.html
 
