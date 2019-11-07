@@ -10,7 +10,7 @@
 | 一 | 独立式可执行程序 | [知乎专栏](https://zhuanlan.zhihu.com/p/53064186) | [点我](./01-freestanding-rust-binary.md) | Done | 11千字 |
 | 二 | 最小化内核 | [知乎专栏](https://zhuanlan.zhihu.com/p/56433770) | [点我](./02-minimal-rust-kernel.md)  | Done | 19千字 |
 | 三 | VGA字符模式 | [知乎专栏](https://zhuanlan.zhihu.com/p/53745617) | [点我](./03-vga-text-mode.md) | Done | 21千字 |
-| 四 | 内核测试 | 待添加 | [点我](./04-testing.md) | Done | 27千字 |
+| 四 | 内核测试 | [知乎专栏](https://zhuanlan.zhihu.com/p/90758552) | [点我](./04-testing.md) | Done | 27千字 |
 | 五 | CPU异常 | 待添加 | [点我](./05-cpu-exceptions.md) | Pending | - | 
 | 六 | Double Fault | 待添加 | 待添加 | Pending | - | 
 | 七 | 硬件中断 | 待添加 | 待添加 | Pending | - | 
