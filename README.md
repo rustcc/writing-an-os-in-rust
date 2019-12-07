@@ -29,3 +29,5 @@
 ## 译者
 
 洛佳 (@luojia65)，华中科技大学
+龙方淞 (@longfangsong)
+readlnh (@readlnh)
