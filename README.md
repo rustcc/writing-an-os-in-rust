@@ -14,9 +14,9 @@
 | 五 | CPU异常 | 待添加 | [点我](./05-cpu-exceptions.md) | Pending | - |
 | 六 | 二重错误 | 待添加 | [点我](./06-double-fault-exceptions.md) | Pending | - |
 | 七 | 硬件中断 | 待添加 | 待添加 | Pending | - |
-| 八 | 内存分页简介 | 待添加 | 待添加 | [点我](./08-introduction-to-paging.md) | - |
-| 九 | 内存分页实现 | 待添加 | 待添加 | [点我](./09-paging-mplementation.md) | - |
-| 十 | 堆分配 | 待添加 | 待添加 | [点我](./10-heap-allocation.md) | - |
+| 八 | 内存分页简介 | 待添加 | [点我](./08-introduction-to-paging.md) | - | - |
+| 九 | 内存分页实现 | 待添加 | [点我](./09-paging-mplementation.md) | - | - |
+| 十 | 堆分配 | 待添加 | [点我](./10-heap-allocation.md) | - | - |
 
 ### 附录
 | 序号 | 标题 | 链接 | 源文件 | 状态 | 长度 |
