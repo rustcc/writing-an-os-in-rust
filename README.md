@@ -27,6 +27,9 @@
 | 附录三 | 禁用SIMD | [知乎专栏](https://zhuanlan.zhihu.com/p/53350970) | [点我](./appendix-c-disable-simd.md) | Done | 2千字 |
 | 附录四 | 在安卓系统上构建 | 待添加 | 待添加 | Pending | - |
 
+### 译名表
+[点我](./translation-table.md)
+
 ## 译者
 
 - 洛佳 (@luojia65)，华中科技大学
