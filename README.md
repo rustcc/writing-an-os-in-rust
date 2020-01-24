@@ -17,6 +17,7 @@
 | 八 | 内存分页简介 | 待添加 | [点我](./08-introduction-to-paging.md) | - | - |
 | 九 | 内存分页实现 | 待添加 | [点我](./09-paging-mplementation.md) | - | - |
 | 十 | 堆分配 | 待添加 | [点我](./10-heap-allocation.md) | - | - |
+| 十一 | 内存分配器设计 | 待添加 | [点我](./11-allocator-designs.md) | - | - |
 
 ### 附录
 | 序号 | 标题 | 链接 | 源文件 | 状态 | 长度 |
@@ -29,5 +30,5 @@
 ## 译者
 
 - 洛佳 (@luojia65)，华中科技大学
-- 龙方淞 (@longfangsong)
+- 龙方淞 (@longfangsong)，上海大学开源社区
 - readlnh (@readlnh)
