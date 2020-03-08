@@ -8,4 +8,11 @@
 
 | 英文 | 首次出现章节 | 中文翻译 |
 |:----:|:--------:|:------:|
+| Combinators | 十二 | 组合子 |
+| Cooperative Multitasking | 十二 | 协作式多任务 |
+| diverging | 十二 | 发散 |
+| dynamically dispatch | 十二 | 动态派发 |
+| Pin | 十二 | 固定 |
+| Preemptive Multitasking | 十二 | 抢占式多任务 |
 | redzone | 二 | 红区 |
+
