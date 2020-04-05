@@ -16,7 +16,7 @@
 | 六   | 二重错误         | 待添加                                            | [点我](./06-double-fault-exceptions.md)  | Pending | -       |
 | 七   | 硬件中断         | 待添加                                            | [点我](./07-hardware-interrupts.md)      | Done | 21 千字 |
 | 八   | 内存分页简介     | 待添加                                            | [点我](./08-introduction-to-paging.md)   | Done | 16 千字 |
-| 九   | 内存分页实现     | 待添加                                            | [点我](./09-paging-mplementation.md)     | Done | 28 千字 |
+| 九   | 内存分页实现     | 待添加                                            | [点我](./09-paging-implementation.md)     | Done | 28 千字 |
 | 十   | 堆分配           | 待添加                                            | [点我](./10-heap-allocation.md)          | Done | 20 千字 |
 | 十一 | 内存分配器设计   | 待添加                                            | [点我](./11-allocator-designs.md)        | Done | 35 千字 |
 | 十二 | Async/Await   | 待添加                                            | [点我](./12-async/await.md)        | Done | 51 千字 |
