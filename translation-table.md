@@ -9,8 +9,8 @@
 涉及Rust语言的概念，标注(Rust)，以便和其它语言、技术的概念相区分。
 
 | 英文 | 首次出现章节 | 中文翻译 |
-|:----:|:--------:|:------:
-| bare metal | 一 ｜ 裸机 |
+|:----|:--------|:------|
+| bare metal | 一 | 裸机 |
 | bare-metal executable | 一 | 裸机程序 |
 | Combinators | 十二 | 组合子 |
 | Cooperative Multitasking | 十二 | 协作式多任务 |
