@@ -6,7 +6,7 @@
 
 # 使用Rust编写操作系统（二）：最小化内核
 
-在这篇文章中，我们将基于**x86架构**（the x86 architecture），使用Rust语言，编写一个最小化的64位内核。我们将从上一章中构建的独立式可执行程序开始，构建自己的内核；它将向显示器打印字符串，并能被打包为一个能够引导启动的**磁盘映像**（disk image）。
+这片文章将基于**x86架构**（the x86 architecture）；我们是试着使用Rust语言，编写一个最小化内核。我们将从独立式可执行程序开始，构建自己的内核。我们将向显示器打印字符串，最终打包内核为能引导启动的**磁盘映像**（disk image）。
 
 ## 引导启动
 
@@ -179,10 +179,10 @@ pub extern "C" fn _start() -> ! {
 
 通过把JSON文件名传入`--target`选项，我们现在可以开始编译我们的内核。让我们试试看：
 
-```
+```text
 > cargo build --target x86_64-blog_os.json
 
-error[E0463]: can't find crate for `core` 
+error[E0463]: can't find crate for `core`
 （或者是下面的错误）
 error[E0463]: can't find crate for `compiler_builtins`
 ```
@@ -231,7 +231,7 @@ target = "x86_64-blog_os.json"
 
 这里的配置告诉`cargo`在没有显式声明目标的情况下，使用我们提供的`x86_64-blog_os.json`作为目标配置。这意味着保存后，我们可以直接使用：
 
-```
+```text
 cargo build
 ```
 
@@ -241,7 +241,7 @@ cargo build
 
 要做到这一步，最简单的方式是写入**VGA字符缓冲区**（[VGA text buffer](https://en.wikipedia.org/wiki/VGA-compatible_text_mode)）：这是一段映射到VGA硬件的特殊内存片段，包含着显示在屏幕上的内容。通常情况下，它能够存储25行、80列共2000个**字符单元**（character cell）；每个字符单元能够显示一个ASCII字符，也能设置这个字符的**前景色**（foreground color）和**背景色**（background color）。输出到屏幕的字符大概长这样：
 
-![](https://upload.wikimedia.org/wikipedia/commons/6/6d/Codepage-737.png)
+![字符](https://upload.wikimedia.org/wikipedia/commons/6/6d/Codepage-737.png)
 
 我们将在下篇文章中详细讨论VGA字符缓冲区的内存布局；目前我们只需要知道，这段缓冲区的地址是`0xb8000`，且每个字符单元包含一个ASCII码字节和一个颜色字节。
 
@@ -265,13 +265,13 @@ pub extern "C" fn _start() -> ! {
 }
 ```
 
-在这段代码中，我们预先定义了一个**字节字符串**（byte string）类型的**静态变量**（static variable），名为`HELLO`。我们首先将整数`0xb8000`**转换**（cast）为一个**裸指针**（[raw pointer](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）。这之后，我们迭代`HELLO`的每个字节，使用[enumerate](https://doc.rust-lang.org/core/iter/trait.Iterator.html#method.enumerate)获得一个额外的序号变量`i`。在`for`语句的循环体中，我们使用[offset](https://doc.rust-lang.org/std/primitive.pointer.html#method.offset)偏移裸指针，解引用它，来将字符串的每个字节和对应的颜色字节——`0xb`代表淡青色——写入内存位置。
+在这段代码中，我们预先定义了一个**字节串**（byte string）类型的**静态变量**（static variable），名为`HELLO`。我们首先将整数`0xb8000`**转换**（cast）为一个**裸指针**（[raw pointer](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）。这之后，我们迭代`HELLO`的每个字节，使用[enumerate](https://doc.rust-lang.org/core/iter/trait.Iterator.html#method.enumerate)获得一个额外的序号变量`i`。在`for`语句的循环体中，我们使用[offset](https://doc.rust-lang.org/std/primitive.pointer.html#method.offset)偏移裸指针，解引用它，来将字符串的每个字节和对应的颜色字节——`0xb`代表淡青色——写入内存位置。
 
 要注意的是，所有的裸指针内存操作都被一个**unsafe语句块**（[unsafe block](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html)）包围。这是因为，此时编译器不能确保我们创建的裸指针是有效的；一个裸指针可能指向任何一个你内存位置；直接解引用并写入它，也许会损坏正常的数据。使用`unsafe`语句块时，程序员其实在告诉编译器，自己保证语句块内的操作是有效的。事实上，`unsafe`语句块并不会关闭Rust的安全检查机制；它允许你多做的事情[只有四件](https://doc.rust-lang.org/stable/book/second-edition/ch19-01-unsafe-rust.html#unsafe-superpowers)。
 
 使用`unsafe`语句块要求程序员有足够的自信，所以必须强调的一点是，**肆意使用unsafe语句块并不是Rust编程的一贯方式**。在缺乏足够经验的前提下，直接在`unsafe`语句块内操作裸指针，非常容易把事情弄得很糟糕；比如，在不注意的情况下，我们很可能会意外地操作缓冲区以外的内存。
 
-在这样的前提下，我们希望最小化`unsafe `语句块的使用。使用Rust语言，我们能够将不安全操作将包装为一个安全的抽象模块。举个栗子，我们可以创建一个VGA缓冲区类型，把所有的不安全语句封装起来，来确保从类型外部操作时，无法写出不安全的代码：通过这种方式，我们只需要最少的`unsafe`语句块来确保我们不破坏**内存安全**（[memory safety](https://en.wikipedia.org/wiki/Memory_safety)）。在下一篇文章中，我们将会创建这样的VGA缓冲区封装。
+在这样的前提下，我们希望最小化`unsafe`语句块的使用。使用Rust语言，我们能够将不安全操作将包装为一个安全的抽象模块。举个栗子，我们可以创建一个VGA缓冲区类型，把所有的不安全语句封装起来，来确保从类型外部操作时，无法写出不安全的代码：通过这种方式，我们只需要最少的`unsafe`语句块来确保我们不破坏**内存安全**（[memory safety](https://en.wikipedia.org/wiki/Memory_safety)）。在下一篇文章中，我们将会创建这样的VGA缓冲区封装。
 
 ## 启动内核
 
@@ -328,7 +328,7 @@ cargo install bootimage --version "^0.7.3"
 > qemu-system-x86_64 -drive format=raw,file=bootimage-blog_os.bin
 ```
 
-![](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
+![qemu的显示内容](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
 
 我们可以看到，屏幕窗口已经显示出“Hello World!”字符串。祝贺你！
 
