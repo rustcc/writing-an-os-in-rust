@@ -29,8 +29,8 @@
 | cross compile | 一 | 交叉编译 |
 | custom target | 一 | 自定义目标 |
 | destructor | 一 | 析构函数 |
-| dev profile (Rust) | 一 | dev配置 |
-| device name | 二 | 设备名 ｜
+| "dev" profile (Rust) | 一 | dev配置 |
+| device name | 二 | 设备名 |
 | diverging | 十二 | 发散 |
 | diverging function (Rust) | 一 | 发散函数 |
 | dynamically dispatch | 十二 | 动态派发 |
@@ -60,14 +60,14 @@
 | raw pointer | 二 | 裸指针 |
 | redzone | 二 | 红区 |
 | release channel (Rust) | 二 | 发行频道 |
-| release profile | 一 | release配置 |
+| "release" profile | 一 | release配置 |
 | root module | 一 | 根模块 |
 | runtime system | 一 | 运行时系统 |
 | Single Instruction Multiple Data, SIMD | 二 | 单指令多数据流 |
-| static variable | 二 | 静态变量 |
 | stack trace | 一 | 堆栈轨迹 |
 | stack unwinding | 一，二 | 栈展开 |
 | standard output | 一 | 标准输出 |
+| static variable | 二 | 静态变量 |
 | structured exception handling, SEH | 一 | 结构化异常处理 |
 | software threads | 一 | 软件线程，绿色线程 |
 | system call | 一 | 系统调用 |
