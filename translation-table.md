@@ -38,9 +38,11 @@
 | "never" type (Rust) | 一 | Never类型 |
 | redzone | 二 | 红区 |
 | release profile | 一 | release配置 |
+| root module | 一 | 根模块 |
 | runtime system | 一 | 运行时系统 |
 | stack trace | 一 | 堆栈轨迹 |
 | stack unwinding | 一 | 栈展开 |
+| standard output | 一 | 标准输出 |
 | structured exception handling, SEH | 一 | 结构化异常处理 |
 | software threads | 一 | 软件线程，绿色线程 |
 | system call | 一 | 系统调用 |

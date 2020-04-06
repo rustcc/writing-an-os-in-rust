@@ -1,20 +1,20 @@
->原文：https://os.phil-opp.com/freestanding-rust-binary/
+> 原文：https://os.phil-opp.com/freestanding-rust-binary/
 >
->原作者：@phil-opp
+> 原作者：@phil-opp
 >
->译者：洛佳  华中科技大学
+> 译者：洛佳  华中科技大学
 
 # 使用Rust编写操作系统（一）：独立式可执行程序
 
-创建一个不连接标准库的Rust可执行文件，将是我们迈出的第一步。无需底层操作系统的支撑，这将能让在**裸机**（[bare metal](https://en.wikipedia.org/wiki/Bare_machine)）上运行Rust代码成为现实。
+我们的第一步，是在不连接标准库的前提下，创建独立的Rust可执行文件。无需底层操作系统的支撑，这将能让在**裸机**（[bare metal](https://en.wikipedia.org/wiki/Bare_machine)）上运行Rust代码成为现实。
 
 ## 简介
 
-要编写一个操作系统内核，我们需要不基于任何操作系统特性的代码。这意味着我们不能使用线程、文件、堆内存、网络、随机数、标准输出，或其它任何需要操作系统抽象和特定硬件的特性；这其实讲得通，因为我们正在编写自己的操作系统和硬件驱动。
+要编写一个操作系统内核，我们的代码应当不基于任何的操作系统特性。这意味着我们不能使用线程、文件、堆内存、网络、随机数、标准输出，或其它任何需要特定硬件和操作系统抽象的特性；这其实讲得通，因为我们正在编写自己的硬件驱动和操作系统。
 
 实现这一点，意味着我们不能使用[Rust标准库](https://doc.rust-lang.org/std/)的大部分；但还有很多Rust特性是我们依然可以使用的。比如说，我们可以使用[迭代器](https://doc.rust-lang.org/book/ch13-02-iterators.html)、[闭包](https://doc.rust-lang.org/book/ch13-01-closures.html)、[模式匹配](https://doc.rust-lang.org/book/ch06-00-enums.html)、[Option](https://doc.rust-lang.org/core/option/)、[Result](https://doc.rust-lang.org/core/result/index.html)、[字符串格式化](https://doc.rust-lang.org/core/macro.write.html)，当然还有[所有权系统](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html)。这些功能让我们能够编写表达性强、高层抽象的操作系统，而无需操心[未定义行为](https://www.nayuki.io/page/undefined-behavior-in-c-and-cplusplus-programs)和[内存安全](https://tonyarcieri.com/it-s-time-for-a-memory-safety-intervention)。
 
-为了用Rust编写一个操作系统内核，我们需要创建一个独立于操作系统的可执行程序。这样的可执行程序常被称作**独立式可执行程序**（freestanding executable）或**裸机程序**(bare-metal executable)。
+为了用Rust编写一个操作系统内核，我们需要独立于操作系统，创建一个可执行程序。这样的可执行程序常被称作**独立式可执行程序**（freestanding executable）或**裸机程序**(bare-metal executable)。
 
 在这篇文章里，我们将逐步地创建一个独立式可执行程序，并且详细解释为什么每个步骤都是必须的。如果读者只对最终的代码感兴趣，可以跳转到本篇文章的小结部分。
 
@@ -28,9 +28,9 @@
 > cargo new blog_os
 ```
 
-在这里我把项目命名为`blog_os`，当然读者也可以选择自己的项目名称。这里，cargo默认为我们添加了`--bin`选项，说明我们将要创建一个可执行文件（而不是一个库）；cargo还为我们添加了`--edition 2018`标签，指明项目的包要使用Rust的**2018版次**（[2018 edition](https://rust-lang-nursery.github.io/edition-guide/rust-2018/index.html)）。当我们执行这行指令的时候，cargo为我们创建的目录结构如下：
+这里，我把项目命名为`blog_os`，当然读者也可以选择自己的项目名称。这里，cargo默认为我们添加了`--bin`选项，说明我们将要创建一个可执行文件（而不是一个库）；cargo还为我们添加了`--edition 2018`标签，指明项目的包要使用Rust的**2018版次**（[2018 edition](https://rust-lang-nursery.github.io/edition-guide/rust-2018/index.html)）。当我们执行这行指令的时候，cargo为我们创建的目录结构如下：
 
-```
+```text
 blog_os
 ├── Cargo.toml
 └── src
@@ -53,7 +53,7 @@ fn main() {
 }
 ```
 
-看起来非常顺利。当我们使用`cargo build`来编译的时候，却出现了下面的错误：
+看起来非常顺利。但我们使用`cargo build`来编译时，却出现了下面的错误：
 
 ```rust
 error: cannot find macro `println!` in this scope
@@ -63,9 +63,9 @@ error: cannot find macro `println!` in this scope
   |     ^^^^^^^
 ```
 
-出现这个错误的原因是，[println!宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖于标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向**标准输出**（[standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)）打印字符，它依赖于特殊的文件描述符，而这是由操作系统提供的特性。
+出现这个错误的原因是，[println!宏](https://doc.rust-lang.org/std/macro.println.html)是标准库的一部分，而我们的项目不再依赖标准库。我们选择不再打印字符串。这也能解释得通，因为`println!`将会向**标准输出**（[standard output](https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29)）打印字符，它依赖于特殊的文件描述符；这个特性是由操作系统提供的。
 
-所以我们可以移除这行代码，使用一个空的main函数再次尝试编译：
+所以我们可以移除这行代码，这样main函数就是空的了。再次编译：
 
 ```rust
 // main.rs
@@ -81,11 +81,11 @@ error: `#[panic_handler]` function required, but not found
 error: language item required, but not found: `eh_personality`
 ```
 
-现在我们发现，编译器缺少一个`#[panic_handler]`函数和一个**语言项**（language item）。
+现在我们发现，代码缺少一个`#[panic_handler]`函数和一个**语言项**（language item）。
 
 ## 实现panic处理函数
 
-`panic_handler`属性定义了一个函数，它会在一个panic发生时被调用。标准库中提供了自己的panic处理函数，但在`no_std`环境中，我们需要定义一个自己的panic处理函数：
+`panic_handler`属性被用于定义一个函数；在程序panic时，这个函数将会被调用。标准库中提供了自己的panic处理函数，但在`no_std`环境中，我们需要定义自己的panic处理函数：
 
 ```rust
 // in main.rs
@@ -111,7 +111,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 ### 禁用栈展开
 
-在其它一些情况下，栈展开不是迫切需求的功能；因此，Rust提供了**在panic时中止**（[abort on panic](https://github.com/rust-lang/rust/pull/32900)）的选项。这个选项能禁用栈展开相关的标志信息生成，也因此能缩小生成的二进制程序的长度。有许多方式能打开这个选项，最简单的方式是把下面的几行设置代码加入我们的`Cargo.toml`：
+在其它一些情况下，栈展开不是迫切需求的功能；因此，Rust提供了**panic时中止**（[abort on panic](https://github.com/rust-lang/rust/pull/32900)）的选项。这个选项能禁用栈展开相关的标志信息生成，也因此能缩小生成的二进制程序的长度。有许多方式能打开这个选项，最简单的方式是把下面的几行设置代码加入我们的`Cargo.toml`：
 
 ```toml
 [profile.dev]
@@ -136,9 +136,9 @@ error: requires `start` lang_item
 
 我们通常会认为，当运行一个程序时，首先被调用的是`main`函数。但是，大多数语言都拥有一个**运行时系统**（[runtime system](https://en.wikipedia.org/wiki/Runtime_system)），它通常为**垃圾回收**（garbage collection）或**绿色线程**（software threads，或green threads）服务，如Java的GC或Go语言的协程（goroutine）；这个运行时系统需要在main函数前启动，因为它需要让程序初始化。
 
-在一个典型的使用标准库的Rust程序中，程序运行是从一个名为`crt0`的运行时库开始的。`crt0`意为C runtime zero，它能建立一个适合运行C语言程序的环境，这包含了栈的创建和可执行程序参数的传入。这之后，这个运行时库会调用[Rust的运行时入口点](https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73)，这个入口点被称作**start语言项**（"start" language item）。Rust只拥有一个极小的运行时，它被设计为拥有较少的功能，如爆栈检测和打印**堆栈轨迹**（stack trace）。这之后，这个运行时将会调用main函数。
+一个典型的使用标准库的Rust程序，它的运行将从名为`crt0`的运行时库开始。`crt0`意为C runtime zero，它能建立一个适合运行C语言程序的环境，这包含了栈的创建和可执行程序参数的传入。这之后，这个运行时库会调用[Rust的运行时入口点](https://github.com/rust-lang/rust/blob/bb4d1491466d8239a7a5fd68bd605e3276e97afb/src/libstd/rt.rs#L32-L73)，这个入口点被称作**start语言项**（"start" language item）。Rust只拥有一个极小的运行时，它只拥有较少的功能，如爆栈检测和打印**堆栈轨迹**（stack trace）。这之后，运行时将会调用main函数。
 
-我们的独立式可执行程序并不能访问Rust运行时或`crt0`库，所以我们需要定义自己的入口点。实现一个`start`语言项并不能帮助我们，因为这之后程序依然要求`crt0`库。所以，我们要做的是，直接重写整个`crt0`库和它定义的入口点。
+我们的独立式可执行程序并不能访问Rust运行时或`crt0`库，所以我们需要定义自己的入口点。实现一个`start`语言项并不能解决问题，因为这之后程序依然要求`crt0`库。所以，我们要做的是，直接重写整个`crt0`库和它定义的入口点。
 
 ### 重写入口点
 
@@ -157,7 +157,7 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-读者也许会注意到，我们移除了`main`函数。原因很显然，既然没有底层已有的运行时调用它，`main`函数也失去了存在的必要性。为了重写操作系统的入口点，我们转而编写一个`_start`函数：
+读者也许会注意到，我们移除了`main`函数。很显然，既然没有底层已有的运行时调用它，`main`函数将不会被运行。为了重写操作系统的入口点，我们转而编写一个`_start`函数：
 
 ```rust
 #[no_mangle]
@@ -170,7 +170,7 @@ pub extern "C" fn _start() -> ! {
 
 我们还将函数标记为`extern "C"`，告诉编译器这个函数应当使用[C语言的调用约定](https://en.wikipedia.org/wiki/Calling_convention)，而不是Rust语言的调用约定。函数名为`_start`，是因为大多数系统默认使用这个名字作为入口点名称。
 
-与前文的`panic`函数类似，这个函数的返回值类型为`!`——它定义了一个发散函数，或者说一个不允许返回的函数。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如操作系统提供的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）函数。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。现在来看，我们可以添加一个无限循环，来满足对返回值类型的需求。
+与前文的`panic`函数类似，这个函数的返回值类型为`!`——它定义了一个发散函数，或者说一个不允许返回的函数。这一点是必要的，因为这个入口点不将被任何函数调用，但将直接被操作系统或**引导程序**（bootloader）调用。所以作为函数返回的替换，这个入口点应该调用，比如操作系统提供的**exit系统调用**（["exit" system call](https://en.wikipedia.org/wiki/Exit_(system_call))）函数。在我们编写操作系统的情况下，关机应该是一个合适的选择，因为**当一个独立式可执行程序返回时，不会留下任何需要做的事情**（there is nothing to do if a freestanding binary returns）。暂时来看，我们可以添加一个无限循环，这样可以符合返回值的类型。
 
 如果我们现在编译这段程序，会出来一大段不太好看的**链接器错误**（linker error）。
 
@@ -196,11 +196,11 @@ release: 1.35.0-nightly
 LLVM version: 8.0
 ```
 
-上面这段输出来自一个`x86_64`平台下的Linux系统。我们能看到，`host`字段的值为三元组`x86_64-unknown-linux-gnu`，它包含了CPU架构`x86_64`、供应商`unknown`、操作系统`linux`和[二进制接口](https://en.wikipedia.org/wiki/Application_binary_interface)`gnu`。
+上面这段输出来自于`x86_64`平台下的Linux系统。我们能看到，`host`字段的值为三元组`x86_64-unknown-linux-gnu`，它分为以下几个部分：CPU架构`x86_64`；供应商`unknown`；操作系统`linux`和[二进制接口](https://en.wikipedia.org/wiki/Application_binary_interface)`gnu`。
 
 Rust编译器尝试为当前系统的三元组编译，并假定底层有一个类似于Windows或Linux的操作系统提供C语言运行环境——这将导致链接器错误。所以，为了避免这个错误，我们可以另选一个底层没有操作系统的运行环境。
 
-这样的运行环境被称作裸机环境，例如目标三元组`thumbv7em-none-eabihf`描述了一个ARM**嵌入式系统**（[embedded system](https://en.wikipedia.org/wiki/Embedded_system)）。我们暂时不需要了解它的细节，只需要知道这个环境底层没有操作系统——这是由三元组中的`none`描述的。要编译为这个目标，我们需要使用rustup添加它：
+这样的运行环境被称作裸机环境，例如目标三元组`thumbv7em-none-eabihf`描述了一个ARM**嵌入式系统**（[embedded system](https://en.wikipedia.org/wiki/Embedded_system)）。我们暂时不需要了解它的细节，只需要知道这个环境底层没有操作系统——这是由三元组中的`none`描述的。我们需要用rustup安装这个目标：
 
 ```
 rustup target add thumbv7em-none-eabihf
@@ -275,4 +275,4 @@ cargo build --target thumbv7em-none-eabihf
 
 ## 下篇预告
 
-下一篇文章要做的事情基于我们这篇文章的成果，它将详细讲述编写一个最小的操作系统内核需要的步骤：如何配置特定的编译目标，如何将可执行程序与引导程序拼接，以及如何把一些特定的字符串打印到屏幕上。
+基于这篇文章的成果，下一篇文章要做的更深。我们将详细讲述编写一个最小的操作系统内核需要的步骤：如何配置特定的编译目标，如何将可执行程序与引导程序拼接，以及如何把一些特定的字符串打印到屏幕上。
