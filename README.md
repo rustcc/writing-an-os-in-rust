@@ -13,7 +13,7 @@
 | 三   | VGA 字符模式     | [知乎专栏](https://zhuanlan.zhihu.com/p/53745617) | [点我](./03-vga-text-mode.md)            | Done    | 21 千字 |
 | 四   | 内核测试         | [知乎专栏](https://zhuanlan.zhihu.com/p/90758552) | [点我](./04-testing.md)                  | Done    | 27 千字 |
 | 五   | CPU 异常         | 待添加                                            | [点我](./05-cpu-exceptions.md)           | Pending | -       |
-| 六   | 二重错误         | 待添加                                            | [点我](./06-double-fault-exceptions.md)  | Pending | -       |
+| 六   | 双重异常         | 待添加                                            | [点我](./06-double-fault-exceptions.md)  | Pending | -       |
 | 七   | 硬件中断         | 待添加                                            | [点我](./07-hardware-interrupts.md)      | Done | 21 千字 |
 | 八   | 内存分页简介     | 待添加                                            | [点我](./08-introduction-to-paging.md)   | Done | 16 千字 |
 | 九   | 内存分页实现     | 待添加                                            | [点我](./09-paging-implementation.md)     | Done | 28 千字 |
