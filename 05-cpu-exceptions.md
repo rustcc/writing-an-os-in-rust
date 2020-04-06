@@ -107,4 +107,24 @@ pub struct InterruptDescriptorTable {
 type HandlerFunc = extern "x86-interrupt" fn(_: &mut InterruptStackFrame);
 ```
 
-//todo
+这是一个**类型别名**（[type alias]）定义，它将定义一个`extern "x86-interrupt" fn`的别名。`extern`关键字说明，函数将遵守一定的**外部调用约定**（[foreign calling convention]）；通常我们和C语言代码通讯时，也会以`extern "C"`的形式用到它。我们需要了解什么是`x86-interrupt`调用约定。
+
+[type alias]: https://doc.rust-lang.org/book/ch19-04-advanced-types.html#creating-type-synonyms-with-type-aliases
+[foreign calling convention]: https://doc.rust-lang.org/nomicon/ffi.html#foreign-calling-conventions
+
+## x86中断调用约定
+
+处理异常和调用函数比较相似：CPU将找到对应的指令，跳转并开始执行。处理完成后，CPU将跳转到返回地址，返回来继续执行函数的调用者。
+
+需要注意的是，异常和普通函数有一些不同点。普通的函数调用只有执行`call`指令会发生，而异常可能会在任意指令处发生。为了理解这个不同点带来的影响，我们需要了解函数调用的步骤细节。
+
+**调用约定**（[calling convention]）是决定函数调用细节的一个因素。比如说，它决定哪个寄存器存放函数的参数，是寄存器还是栈，函数的返回值又应该放在哪里。在x86_64平台的Linux系统，[System V ABI]提供了一套标准用于C语言函数：
+
+[calling convention]: https://en.wikipedia.org/wiki/Calling_convention
+[System V ABI]: https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf
+
+- 前六个参数依次置于寄存器`rdi`、`rsi`、`rdx`、`rcx`、`r8`和`r9`；
+- 其它参数应当放在栈上；
+- 返回值需要放入`rax`和`rdx`。
+
+当我们谈起Rust语言，需要注意的是Rust暂时还没有一个稳定的ABI标准。它通常有自己的调用约定；但如果使用`extern "C" fn`定义函数，它将遵守上面的C语言调用约定。
