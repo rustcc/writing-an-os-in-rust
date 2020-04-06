@@ -6,12 +6,14 @@
 
 英文部分书名、人名请使用斜体；保留原有的大小写。请按英文字母顺序排序。
 
-涉及Rust语言、x86架构等的概念，标注(Rust)(x86)，以便和其它语言、技术的概念相区分。
+涉及特定语言、软件和架构等的概念，标注(Rust)(x86)(QEMU)等，以便和其它语言、技术的概念相区分。
 
 | 英文 | 出现章节 | 中文翻译 |
 |:----|:--------|:------|
 | append by bytes | 二 | 按字符拼接 |
 | Application Binary Interface, ABI | 二 | 应用程序二进制接口 |
+| assert | 四 | 断言 |
+| attribute (Rust) | 四 | 属性 |
 | background color | 二，三 | 背景色 |
 | bare metal | 一，二 | 裸机 |
 | bare-metal executable | 一 | 裸机程序 |
@@ -29,6 +31,7 @@
 | color code | 三 | 颜色代码 |
 | Combinators | 十二 | 组合子 |
 | compiler built-in libraries | 二 | 编译器内建库 |
+| conditional compilation | 四 | 条件编译 |
 | const evaluator | 三 | 常量求值器 |
 | const functions (Rust) | 三 | 常函数 |
 | Cooperative Multitasking | 十二 | 协作式多任务 |
@@ -49,6 +52,7 @@
 | edition (Rust) | 一 | 版次 |
 | enum (Rust) | 三 | 枚举 |
 | Executable and Linkable Format, ELF | 二 | ELF格式 |
+| exit status (QEMU) | 四 | 退出状态 |
 | explicit lifetime (Rust) | 三 | 显式生命周期 |
 | embedded system | 一 | 嵌入式系统 |
 | entry point | 一 | 入口点 |
@@ -60,10 +64,13 @@
 | garbage collection | 一 | 垃圾回收 |
 | generic | 三 | 泛型 |
 | green threads | 一 | 绿色线程，软件线程 |
+| guest system | 四 | 客户系统 |
 | host system | 一，二 | 宿主系统 |
 | immutable variable (Rust) | 三 | 不可变变量 |
+| integration test | 四 | 集成测试 |
 | interior mutability (Rust) | 三 | 内部可变性 |
-| kernal | 二 | 内核 |
+| I/O port (x86) | 四 | IO端口 |
+| kernel | 二 | 内核 |
 | language item (Rust) | 一 | 语言项 |
 | line feed | 三 | 换行符 |
 | linker | 一，二 | 链接器 |
@@ -78,6 +85,7 @@
 | name mangling | 一 | 名称重整 |
 | "never" type (Rust) | 一 | Never类型 |
 | page table | 二 | 分页表 |
+| page fault| 四 | 缺页异常 |
 | Pin | 十二 | 固定 |
 | precompiled library | 二 | 预编译库 |
 | Preemptive Multitasking | 十二 | 抢占式多任务 |
@@ -91,6 +99,7 @@
 | rule (in macros, Rust) | 三 | （宏的）规则 |
 | runtime system | 一 | 运行时系统 |
 | semantic version number, semver | 三 | 语义版本号 |
+| serial port | 四 | 串行端口 |
 | Single Instruction Multiple Data, SIMD | 二 | 单指令多数据流 |
 | spinlock | 三 | 自旋锁 |
 | stack trace | 一 | 堆栈轨迹 |
@@ -105,6 +114,8 @@
 | target triple (Rust) | 一，二 | 目标三元组 |
 | target specification | 二 | 目标配置清单 |
 | target system | 二 | 目标系统 |
+| test runner | 四 | 测试运行器 |
+| trait object (Rust) | 四 | trait对象 |
 | unsafe block | 二，三 | unsafe语句块 |
 | unstable feature | 二 | 不稳定特性 |
 | VGA text buffer (x86) | 二，三 | VGA字符缓冲区 |

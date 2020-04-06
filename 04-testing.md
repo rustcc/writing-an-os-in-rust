@@ -40,13 +40,13 @@ Rust有一个**内置的测试框架**（[built-in test framework]）：无需�
 
 当我们试图在我们的项目中执行`cargo xtest`时，我们可以看到如下信息:
 
-```
+```text
 > cargo xtest
    Compiling blog_os v0.1.0 (/…/blog_os)
 error[E0463]: can't find crate for `test`
 ```
 
-由于`test`crate依赖于标准库，所以它在我们的裸机目标上并不可用。虽然将`test`crate移植到一个 `#[no_std]` 上下文环境中是[可能的][utest]，但是这样做是高度不稳定的并且还会需要一些特殊的hacks，例如重定义 `panic` 宏。 
+由于`test`crate依赖于标准库，所以它在我们的裸机目标上并不可用。虽然将`test`crate移植到一个 `#[no_std]` 上下文环境中是[可能的][utest]，但是这样做是高度不稳定的并且还会需要一些特殊的hacks，例如重定义 `panic` 宏。
 
 [utest]: https://github.com/japaric/utest
 
@@ -77,7 +77,7 @@ fn test_runner(tests: &[&dyn Fn()]) {
 }
 ```
 
-我们的runner会打印一个简短的debug信息然后调用列表中的每个测试函数。参数类型 `&[&dyn Fn()]` 是[_Fn()_] trait的 [_trait object_] 引用的一个 [_slice_]。它基本上可以被看做一个可以像函数一样被调用的类型的引用列表。由于这个函数在不进行测试的时候没有什么用，这里我们使用 `#[cfg(test)]`属性保证它只会出现在测试中。 
+我们的runner会打印一个简短的debug信息然后调用列表中的每个测试函数。参数类型 `&[&dyn Fn()]` 是[_Fn()_] trait的 [_trait object_] 引用的一个 [_slice_]。它基本上可以被看做一个可以像函数一样被调用的类型的引用列表。由于这个函数在不进行测试的时候没有什么用，这里我们使用 `#[cfg(test)]`属性保证它只会出现在测试中。
 
 [_slice_]: https://doc.rust-lang.org/std/primitive.slice.html
 [_trait object_]: https://doc.rust-lang.org/1.30.0/book/first-edition/trait-objects.html
@@ -149,6 +149,7 @@ test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 在传递设备名 (`isa-debug-exit`)的同时，我们还传递了两个参数，`iobase` 和 `iosize` 。这两个参数指定了一个_I/O 端口_，我们的内核将通过它来访问设备。
 
 ### I/O 端口
+
 在x86平台上，CPU和外围硬件通信通常有两种方式，**内存映射I/O**和**端口映射I/O**。之前，我们已经使用内存映射的方式，通过内存地址`0xb8000`访问了[VGA文本缓冲区]。该地址并没有映射到RAM，而是映射到了VGA设备的一部分内存上。
 
 [VGA text buffer]: ./second-edition/posts/03-vga-text-buffer/index.md
@@ -166,7 +167,6 @@ test-args = ["-device", "isa-debug-exit,iobase=0xf4,iosize=0x04"]
 [exit status]: https://en.wikipedia.org/wiki/Exit_status
 
 这里我们使用 [`x86_64`] crate提供的抽象，而不是手动调用`in`或`out`指令。为了添加对该crate的依赖，我们可以将其添加到我们的 `Cargo.toml`中的 `dependencies` 小节中去:
-
 
 [`x86_64`]: https://docs.rs/x86_64/0.7.5/x86_64/
 
@@ -220,7 +220,7 @@ fn test_runner(tests: &[&dyn Fn()]) {
 
 当我们现在运行`cargo xtest`时，QEMU会在测试运行后立刻退出。现在的问题是，即使我们传递了表示成功（`Success`）的退出代码， `cargo test`依然会将所有的测试都视为失败：
 
-```
+```text
 > cargo xtest
     Finished dev [unoptimized + debuginfo] target(s) in 0.03s
      Running target/x86_64-blog_os/debug/deps/blog_os-5804fc7d2dd4c9be
@@ -235,7 +235,7 @@ error: test failed, to rerun pass '--bin blog_os'
 
 这里的问题在于，`cargo test`会将所有非`0`的错误码都视为测试失败。
 
-### 成功退出(Exit)代码
+### 代表成功的退出代码
 
 为了解决这个问题， `bootimage`提供了一个 `test-success-exit-code`配置项，可以将指定的退出代码映射到退出代码`0`:
 
@@ -373,7 +373,7 @@ test-args = [
 
 现在，当我们运行 `cargo xtest`时，我们可以直接在控制台里看到测试输出了:
 
-```
+```text
 > cargo xtest
     Finished dev [unoptimized + debuginfo] target(s) in 0.02s
      Running target/x86_64-blog_os/debug/deps/blog_os-7b7c37b4ad62551a
@@ -423,7 +423,7 @@ fn panic(info: &PanicInfo) -> ! {
 
 现在，即使在测试失败的情况下QEMU仍然会存在，并会将一些有用的错误信息打印到控制台：
 
-```
+```text
 > cargo xtest
     Finished dev [unoptimized + debuginfo] target(s) in 0.02s
      Running target/x86_64-blog_os/debug/deps/blog_os-7b7c37b4ad62551a
@@ -462,8 +462,7 @@ test-args = [
 
 ### 超时
 
-由于 `cargo xtest` 会等待test runner退出，如果一个测试永远不返回那么它就会一直阻塞test runner。幸运的是，在实际应用中这并不是一个大问题，因为无限循环通常是很容易避免的。在我们的这个例子里，无限循环会发生在以下几种不同的情况中：
-
+由于 `cargo xtest` 会等待测试运行器退出，如果一个测试永远不返回那么它就会一直阻塞测试运行器。幸运的是，在实际应用中这并不是一个大问题，因为无限循环通常是很容易避免的。在我们的这个例子里，无限循环会发生在以下几种不同的情况中：
 
 - bootloader加载内核失败，导致系统不停重启；
 - BIOS/UEFI固件加载bootloader失败，同样会导致无限重启；
@@ -589,7 +588,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 ```
 
-由于集成测试都是单独的可执行文件，所以我们需要再次提供所有的crate属性(`no_std`, `no_main`, `test_runner`, 等等)。我们还需要创建一个新的入口点函数`_start`，用于调用测试入口函数`test_main`。我们不需要任何的`cfg(test)` attributes(属性)，因为集成测试的二进制文件在非测试模式下根本不会被编译构建。 
+由于集成测试都是单独的可执行文件，所以我们需要再次提供所有的crate属性(`no_std`, `no_main`, `test_runner`, 等等)。我们还需要创建一个新的入口点函数`_start`，用于调用测试入口函数`test_main`。我们不需要任何的`cfg(test)` attributes(属性)，因为集成测试的二进制文件在非测试模式下根本不会被编译构建。
 
 这里我们采用[`unimplemented`]宏，充当`test_runner`暂未实现的占位符；添加简单的`loop {}`循环，作为`panic`处理器的内容。理想情况下，我们希望能向我们在`main.rs`里所做的一样使用`serial_println`宏和`exit_qemu`函数来实现这个函数。但问题是，由于这些测试的构建和我们的`main.rs`的可执行文件是完全独立的，我们没有办法使用这些函数。
 
@@ -598,6 +597,7 @@ fn panic(info: &PanicInfo) -> ! {
 如果现阶段你运行`cargo xtest`，你将进入一个无限循环，因为目前panic的处理就是进入无限循环。你需要使用快捷键`Ctrl+c`，才可以退出QEMU。
 
 ### 创建一个库
+
 为了让这些函数能在我们的集成测试中使用，我们需要从我们的`main.rs`中分割出一个库，这个库应当可以被其他的crate和集成测试可执行文件使用。为了达成这个目的，我们创建了一个新文件，`src/lib.rs`:
 
 ```rust
@@ -650,7 +650,7 @@ fn panic(info: &PanicInfo) -> ! {
 }
 ```
 
-为了能在可执行文件和集成测试中使用`test_runner`，我们不对其应用`cfg(test)` attribute(属性)，并将其设置为public。同时，我们还将panic的处理程序分解为public函数`test_panic_handler`，这样一来它也可以用于可执行文件了。
+为了能在可执行文件和集成测试中使用`test_runner`，我们不对其应用`cfg(test)` 属性，并将其设置为public。同时，我们还将panic的处理程序分解为public函数`test_panic_handler`，这样一来它也可以用于可执行文件了。
 
 由于我们的`lib.rs`是独立于`main.rs`进行测试的，因此当该库实在测试模式下编译时我们需要添加一个`_start`入口点和一个panic处理程序。通过使用[`cfg_attr`] ，我们可以在这种情况下有条件地启用`no_main` 属性。
 
@@ -728,9 +728,9 @@ fn panic(info: &PanicInfo) -> ! {
 }
 ```
 
-可以看到，这个库用起来就像一个普通的外部crate。它的调用方法与其它crate无异；在我们的这个例子中，位置可能为`blog_os`。上述代码使用了`test_runner` attribute中的`blog_os::test_runner`函数和`cfg(test)`的panic处理中的`blog_os::test_panic_handler`函数。它还导入了`println`宏，这样一来，我们可以在我们的`_start` 和 `panic`中使用它了。
+可以看到，这个库用起来就像一个普通的外部crate。它的调用方法与其它crate无异；在我们的这个例子中，位置可能为`blog_os`。上述代码使用了`test_runner`属性中的`blog_os::test_runner`函数，`cfg(test)`的panic处理中的`blog_os::test_panic_handler`函数。它还导入了`println`宏，这样一来，我们可以在我们的`_start`和`panic`中使用它了。
 
-与此同时，`cargo xrun` 和 `cargo xtest`可以再次正常工作了。当然了，`cargo xtest`仍然会进入无限循环（你可以通过`ctrl+c`来退出）。接下来让我们在我们的集成测试中通过所需要的库函数来修复这个问题吧。
+与此同时，`cargo xrun`和`cargo xtest`可以再次正常工作了。当然了，`cargo xtest`仍然会进入无限循环（你可以通过`ctrl+c`来退出）。接下来让我们在我们的集成测试中通过所需要的库函数来修复这个问题吧。
 
 ### 完成集成测试
 
@@ -747,9 +747,9 @@ fn panic(info: &PanicInfo) -> ! {
 }
 ```
 
-这里我们使用我们的库中的`test_runner`函数，而不是重新实现一个test runner。至于panic处理，调用`blog_os::test_panic_handler`函数即可，就像我们之前在我们的`main.rs`里面做的一样。
+这里我们使用我们的库中的`test_runner`函数，而不是重新实现一个测试运行器。至于panic处理，调用`blog_os::test_panic_handler`函数即可，就像我们之前在我们的`main.rs`里面做的一样。
 
-现在，`cargo xtest`又可以正常退出了。当你运行该命令时，你会发现它为我们的`lib.rs`, `main.rs`, 和 `basic_boot.rs`分别构建并运行了测试。其中，对于 `main.rs` 和 `basic_boot`的集成测试，它会报告"Running 0 tests"（正在运行0个测试），因为这些文件里面没有任何用 `#[test_case]`标注的函数。
+现在，`cargo xtest`又可以正常退出了。当你运行该命令时，你会发现它为我们的`lib.rs`, `main.rs`, 和 `basic_boot.rs`分别构建并运行了测试。其中，对于 `main.rs` 和 `basic_boot`的集成测试，它会报告"Running 0 tests"（正在执行0个测试），因为这些文件里面没有任何用 `#[test_case]`标注的函数。
 
 现在我们可以在`basic_boot.rs`中添加测试了。举个例子，我们可以测试`println`是否能够正常工作而不panic，就像我们之前在vga缓冲区测试中做的那样:
 
@@ -768,7 +768,7 @@ fn test_println() {
 
 现在当我们运行`cargo xtest`时，我们可以看到它会寻找并执行这些测试函数。
 
-由于该测试和vga缓冲区测试中的一个几乎完全相同，所以目前它看起来似乎没什么用。然而，在将来，我们的`main.rs`和`lib.rs`中的`_start`函数的内容会不断增长，并且在运行`test_main`之前需要调用一系列的初始化进程，所以这两个测试将会运行在完全不同的环境中(译者注:也就是说虽然现在看起来差不多，但是在将来该测试和vga buffer中的测试会很不一样，有必要单独拿出来，这两者并没有重复)。 
+由于该测试和vga缓冲区测试中的一个几乎完全相同，所以目前它看起来似乎没什么用。然而，在将来，我们的`main.rs`和`lib.rs`中的`_start`函数的内容会不断增长，并且在运行`test_main`之前需要调用一系列的初始化进程，所以这两个测试将会运行在完全不同的环境中(译者注:也就是说虽然现在看起来差不多，但是在将来该测试和vga buffer中的测试会很不一样，有必要单独拿出来，这两者并没有重复)。
 
 通过在`basic_boot`环境里不掉用任何初始化例程的`_start`中测试`println`函数，我们可以确保`println`在启动（boot）后可以正常工作。这一点非常重要，因为我们有很多部分依赖于`println`，例如打印panic信息。
 
@@ -809,7 +809,7 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ```
 
-这个测试还没有完成，因为它尚未定义`_start`函数或是其他自定义的test runner attributes。让我们来补充缺少的内容吧：
+这个测试还没有完成，因为它尚未定义`_start`函数或是其他自定义的测试运行器属性。让我们来补充缺少的内容吧：
 
 
 ```rust
@@ -837,7 +837,7 @@ pub fn test_runner(tests: &[&dyn Fn()]) {
 }
 ```
 
-这个测试定义了自己的`test_runner`函数，而不是复用`lib.rs`中的`test_runner`，该函数会在测试没有panic而是正常退出时返回一个错误退出代码(因为这里我们希望测试会panic)。如果没有定义测试函数，runner就会以一个成功错误代码退出。由于这个runner总是在执行完单个的测试后就退出，因此定义超过一个`#[test_case]`的函数都是没有意义的。
+这个测试定义了自己的`test_runner`函数，而不是复用`lib.rs`中的`test_runner`，该函数会在测试没有panic而是正常退出时返回一个错误退出代码(因为这里我们希望测试会panic)。如果没有定义测试函数，运行器就会以一个成功错误代码退出。由于这个运行器总是在执行完单个的测试后就退出，因此定义超过一个`#[test_case]`的函数都是没有意义的。
 
 现在我们来创建一个应该失败的测试:
 
@@ -861,9 +861,9 @@ fn should_fail() {
 
 ### 无约束测试
 
-对于那些只有单个测试函数的集成测试而言(例如我们的`should_panic`测试)，其实并不需要test runner。对于这种情况，我们可以完全禁用test runner，直接在`_start`函数中直接运行我们的测试。
+对于那些只有单个测试函数的集成测试而言(例如我们的`should_panic`测试)，其实并不需要测试运行器。对于这种情况，我们可以完全禁用测试运行器，直接在`_start`函数中直接运行我们的测试。
 
-这里的关键就是在`Cargo.toml`中为测试禁用 `harness` flag，这个标志（flag）定义了是否将test runner用于集成测试中。如果该标志位被设置为`false`，那么默认的test runner和自定义的test runner功能都将被禁用，这样一来该测试就可以像一个普通的可执行程序一样运行了。
+这里的关键就是在`Cargo.toml`中为测试禁用 `harness` flag，这个标志（flag）定义了是否将测试运行器用于集成测试中。如果该标志位被设置为`false`，那么默认的测试运行器和自定义的测试运行器功能都将被禁用，这样一来该测试就可以像一个普通的可执行程序一样运行了。
 
 现在让我们为我们的`should_panic`测试禁用`harness` flag吧：
 
@@ -875,7 +875,7 @@ name = "should_panic"
 harness = false
 ```
 
-现在我们通过移除test runner相关的代码，大大简化了我们的`should_panic`测试。结果看起来如下：
+现在我们通过移除测试运行器相关的代码，大大简化了我们的`should_panic`测试。结果看起来如下：
 
 ```rust
 // in tests/should_panic.rs
@@ -915,7 +915,7 @@ fn panic(_info: &PanicInfo) -> ! {
 
 测试是一种非常有用的技术，它能确保特定的部件拥有我们期望的行为。即使它们不能显示是否有bug，它们仍然是用来寻找bug的利器，尤其是用来避免回归。
 
-本文讲述了如何为我们的Rust kernel创建一个测试框架。我们使用Rust的自定义框架功能为我们的裸机环境实现了一个简单的`#[test_case]` attribute支持。通过使用QEMU的`isa-debug-exit`设备，我们的test runner可以在运行测试后退出QEMU并报告测试状态。我们还为串行端口实现了一个简单的驱动，使得错误信息可以被打印到控制台而不是VGA buffer中。
+本文讲述了如何为我们的Rust kernel创建一个测试框架。我们使用Rust的自定义框架功能为我们的裸机环境实现了一个简单的`#[test_case]` attribute支持。通过使用QEMU的`isa-debug-exit`设备，我们的测试运行器可以在运行测试后退出QEMU并报告测试状态。我们还为串行端口实现了一个简单的驱动，使得错误信息可以被打印到控制台而不是VGA buffer中。
 
 在为我们的`println`宏创建了一些测试后，我们在本文的后半部分还探索了集成测试。我们了解到它们位于`tests`目录中，并被视为完全独立的可执行文件。为了使他们能够使用`exit_qemu` 函数和 `serial_println` 宏，我们将大部分代码移动到一个库里，使其能够被导入到所有可执行文件和集成测试中。由于集成测试在各自独立的环境中运行，所以能够测试与硬件的交互或是创建应该panic的测试。
 
@@ -924,4 +924,3 @@ fn panic(_info: &PanicInfo) -> ! {
 ## 下期预告
 
 在下一篇文章中，我们将会探索_CPU异常_。这些异常将在一些非法事件发生时由CPU抛出，例如抛出除以零或是访问没有映射的内存页（通常也被称为`page fault`即缺页异常）。能够捕获和检查这些异常，对将来的调试来说是非常重要的。异常处理与键盘支持所需的硬件中断处理十分相似。
-
