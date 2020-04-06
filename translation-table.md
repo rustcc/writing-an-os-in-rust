@@ -12,22 +12,34 @@
 |:----|:--------|:------|
 | append by bytes | 二 | 按字符拼接 |
 | Application Binary Interface, ABI | 二 | 应用程序二进制接口 |
-| background color | 二 | 背景色 |
+| background color | 二，三 | 背景色 |
 | bare metal | 一，二 | 裸机 |
 | bare-metal executable | 一 | 裸机程序 |
+| block (in contexts) | 三 | 阻塞 |
 | bootable disk image | 二 | 可引导的映像 |
 | bootloader | 二 | 引导程序 |
+| bright bit | 三 | 加亮位 |
 | BSS segment | 二 | BSS段 |
+| byte literal | 三 | 字节字面量 |
 | byte string | 二 | 字节串 |
 | caret requirement (Rust) | 二 | 脱字号条件 |
-| character cell | 二 | 字符单元 |
+| character cell | 二，三 | 字符单元 |
+| C-like enum (Rust) | 三 | 类似于C语言的枚举 |
+| Code page 437 | 三 | 代码页437 |
+| color code | 三 | 颜色代码 |
 | Combinators | 十二 | 组合子 |
 | compiler built-in libraries | 二 | 编译器内建库 |
+| const evaluator | 三 | 常量求值器 |
+| const functions (Rust) | 三 | 常函数 |
 | Cooperative Multitasking | 十二 | 协作式多任务 |
-| copy semantics | 一 | 复制语义 |
+| copy semantics | 一，三 | 复制语义 |
 | CPU feature | 二 | CPU特征 |
+| crate (Rust) | 三 | 包 |
+| crate root (Rust) | 三 | 根模块 |
 | cross compile | 一 | 交叉编译 |
 | custom target | 一 | 自定义目标 |
+| dependency (Rust) | 三 | 依赖项 |
+| derive (Rust) | 三 | 生成 |
 | destructor | 一 | 析构函数 |
 | "dev" profile (Rust) | 一 | dev配置 |
 | device name | 二 | 设备名 |
@@ -35,46 +47,69 @@
 | diverging function (Rust) | 一 | 发散函数 |
 | dynamically dispatch | 十二 | 动态派发 |
 | edition (Rust) | 一 | 版次 |
+| enum (Rust) | 三 | 枚举 |
 | Executable and Linkable Format, ELF | 二 | ELF格式 |
+| explicit lifetime (Rust) | 三 | 显式生命周期 |
 | embedded system | 一 | 嵌入式系统 |
 | entry point | 一 | 入口点 |
 | entry point address | 二 | 入口点地址 |
 | feature flag | 二 | 特性标签 |
-| foreground color | 二 | 前景色 |
+| foreground color | 二，三 | 前景色 |
+| formatting macros (Rust) | 三 | 格式化宏 |
 | freestanding executable | 一 | 独立式可执行程序 |
 | garbage collection | 一 | 垃圾回收 |
+| generic | 三 | 泛型 |
 | green threads | 一 | 绿色线程，软件线程 |
 | host system | 一，二 | 宿主系统 |
+| immutable variable (Rust) | 三 | 不可变变量 |
+| interior mutability (Rust) | 三 | 内部可变性 |
 | kernal | 二 | 内核 |
 | language item (Rust) | 一 | 语言项 |
+| line feed | 三 | 换行符 |
 | linker | 一，二 | 链接器 |
 | linker argument | 一 | 链接器参数 |
+| lazy initialization | 三 | 延迟初始化 |
 | magic number | 二 | 魔术数字 |
+| memory-mapped I/O | 三 | 存储器映射输入输出 |
 | memory safety | 二 | 内存安全 |
+| module (Rust) | 三 | 模块 ｜
+| mutable static variable (Rust) | 三 | 可变静态变量 |
+| mutual exclusion | 三 | 互斥条件 |
 | name mangling | 一 | 名称重整 |
 | "never" type (Rust) | 一 | Never类型 |
 | page table | 二 | 分页表 |
 | Pin | 十二 | 固定 |
 | precompiled library | 二 | 预编译库 |
 | Preemptive Multitasking | 十二 | 抢占式多任务 |
-| raw pointer | 二 | 裸指针 |
+| range notation (Rust) | 三 | 区间标号 |
+| raw pointer | 二，三 | 裸指针 |
 | redzone | 二 | 红区 |
 | release channel (Rust) | 二 | 发行频道 |
 | "release" profile | 一 | release配置 |
 | root module | 一 | 根模块 |
+| root namespace | 三 | 根命名空间 |
+| rule (in macros, Rust) | 三 | （宏的）规则 |
 | runtime system | 一 | 运行时系统 |
+| semantic version number, semver | 三 | 语义版本号 |
 | Single Instruction Multiple Data, SIMD | 二 | 单指令多数据流 |
+| spinlock | 三 | 自旋锁 |
 | stack trace | 一 | 堆栈轨迹 |
 | stack unwinding | 一，二 | 栈展开 |
 | standard output | 一 | 标准输出 |
+| 'static lifetime (Rust) | 三 | 'static生命周期 |
 | static variable | 二 | 静态变量 |
 | structured exception handling, SEH | 一 | 结构化异常处理 |
 | software threads | 一 | 软件线程，绿色线程 |
+| submodule (Rust) | 三 | 子模块 |
 | system call | 一 | 系统调用 |
 | target triple (Rust) | 一，二 | 目标三元组 |
 | target specification | 二 | 目标配置清单 |
 | target system | 二 | 目标系统 |
-| unsafe block | 二 | unsafe语句块 |
+| unsafe block | 二，三 | unsafe语句块 |
 | unstable feature | 二 | 不稳定特性 |
-| VGA text buffer (x86) | 二 | VGA字符缓冲区 |
+| VGA text buffer (x86) | 二，三 | VGA字符缓冲区 |
+| VGA text mode (x86) | 三 | VGA字符模式 |
 | virtual address | 二 | 虚拟地址 |
+| volatile operation | 三 | 易失操作 |
+| warning | 三 | 警告 |
+| wrapping type | 三 | 包装类型 |

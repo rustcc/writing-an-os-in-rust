@@ -223,7 +223,7 @@ pub fn print_something() {
 
 这个函数首先创建一个指向`0xb8000`地址VGA缓冲区的`Writer`。实现这一点，我们需要编写的代码可能看起来有点奇怪：首先，我们把整数`0xb8000`强制转换为一个可变的**裸指针**（[raw pointer](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html#dereferencing-a-raw-pointer)）；之后，通过运算符`*`，我们将这个裸指针解引用；最后，我们再通过`&mut`，再次获得它的可变借用。这些转换需要**`unsafe`语句块**（[unsafe block](https://doc.rust-lang.org/book/ch19-01-unsafe-rust.html)），因为编译器并不能保证这个裸指针是有效的。
 
-然后它将字节 `b'H'` 写入缓冲区内. 前缀 `b`创建了一个字节常量（[byte literal](https://doc.rust-lang.org/reference/tokens.html#byte-literals)），表示单个ASCII码字符；通过尝试写入 `"ello "` 和 `"Wörld!"`，我们可以测试 `write_string` 方法和其后对无法打印字符的处理逻辑。为了观察输出，我们需要在`_start`函数中调用`print_something`方法：
+然后它将字节 `b'H'` 写入缓冲区内. 前缀 `b`创建了一个字节字面量（[byte literal](https://doc.rust-lang.org/reference/tokens.html#byte-literals)），表示单个ASCII码字符；通过尝试写入 `"ello "` 和 `"Wörld!"`，我们可以测试 `write_string` 方法和其后对无法打印字符的处理逻辑。为了观察输出，我们需要在`_start`函数中调用`print_something`方法：
 
 ```rust
 // in src/main.rs
@@ -244,9 +244,9 @@ pub extern "C" fn _start() -> ! {
 
 我们刚才看到，自己想要输出的信息被正确地打印到屏幕上。然而，未来Rust编译器更暴力的优化可能让这段代码不按预期工作。
 
-产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的**副效应**（side effect），即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[易失操作](https://en.wikipedia.org/wiki/Volatile_(computer_programming))。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
+产生问题的原因在于，我们只向`Buffer`写入，却不再从它读出数据。此时，编译器不知道我们事实上已经在操作VGA缓冲区内存，而不是在操作普通的RAM——因此也不知道产生的副作用，即会有几个字符显示在屏幕上。这时，编译器也许会认为这些写入操作都没有必要，甚至会选择忽略这些操作！所以，为了避免这些并不正确的优化，这些写入操作应当被指定为[易失操作](https://en.wikipedia.org/wiki/Volatile_(computer_programming))。这将告诉编译器，这些写入可能会产生副效应，不应该被优化掉。
 
-为了在我们的VGA缓冲区中使用易失的写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**包装类型**（wrapping type）和它的`read`、`write`方法；这些方法包装了`core::ptr`内的[read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html)和[write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) 函数，从而保证读操作或写操作不会被编译器优化。
+为了在我们的VGA缓冲区中使用易失的写入操作，我们使用[volatile](https://docs.rs/volatile)库。这个**包**（crate）提供一个名为`Volatile`的**包装类型**（wrapping type），它的`read`、`write`方法；这些方法包装了`core::ptr`内的[read_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.read_volatile.html)和[write_volatile](https://doc.rust-lang.org/nightly/core/ptr/fn.write_volatile.html) 函数，从而保证读操作或写操作不会被编译器优化。
 
 要添加`volatile`包为项目的**依赖项**（dependency），我们可以在`Cargo.toml`文件的`dependencies`中添加下面的代码：
 
