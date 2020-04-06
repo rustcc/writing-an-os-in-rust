@@ -36,6 +36,7 @@
 | const functions (Rust) | 三 | 常函数 |
 | Cooperative Multitasking | 十二 | 协作式多任务 |
 | copy semantics | 一，三 | 复制语义 |
+| CPU exception (x86) | 四 | CPU异常 |
 | CPU feature | 二 | CPU特征 |
 | crate (Rust) | 三 | 包 |
 | crate root (Rust) | 三 | 根模块 |
