@@ -80,7 +80,7 @@
 | magic number | 二 | 魔术数字 |
 | memory-mapped I/O | 三 | 存储器映射输入输出 |
 | memory safety | 二 | 内存安全 |
-| module (Rust) | 三 | 模块 ｜
+| module (Rust) | 三 | 模块 |
 | mutable static variable (Rust) | 三 | 可变静态变量 |
 | mutual exclusion | 三 | 互斥条件 |
 | name mangling | 一 | 名称重整 |
