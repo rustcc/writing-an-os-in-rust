@@ -312,7 +312,7 @@ cargo install bootimage --version "^0.7.3"
 备注：`2020-06-02`按此文档实验时，会出现如下错误
 ```
 error: legacy asm! syntax is no longer supported
-  --> /home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/instructions/interrupts.rs:16:9
+  --> /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/instructions/interrupts.rs:16:9
    |
 16 |         asm!("sti" :::: "volatile");
    |         ----^^^^^^^^^^^^^^^^^^^^^^^^
@@ -320,7 +320,7 @@ error: legacy asm! syntax is no longer supported
    |         help: replace with: `llvm_asm!`
  .... 省略部分报错信息
 error: legacy asm! syntax is no longer supported
-  --> /home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/registers/mod.rs:13:9
+  --> /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/registers/mod.rs:13:9
    |
 13 |           asm!(
    |           ^---
@@ -346,15 +346,15 @@ Error: Kernel build failed
 
 ```bash
 old=`pwd`
-cd /home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.2/
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.2/
 find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
 find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
 
-cd /home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/
 find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
 find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
 
-cd /home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4
 find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
 find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
 
@@ -368,7 +368,7 @@ $ cargo bootimage
 Building kernel
     Finished dev [unoptimized + debuginfo] target(s) in 0.08s
 Building bootloader
-   Compiling bootloader v0.6.4 (/home/yoj/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4)
+   Compiling bootloader v0.6.4 (/home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4)
     Finished release [optimized + debuginfo] target(s) in 3.06s
 ```
 
