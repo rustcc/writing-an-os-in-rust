@@ -67,7 +67,7 @@ x86_64 = "0.7.5"
 
 这种方法的缺点是需要额外的页表来存储物理内存的映射。 这些页表需要存储在某个地方，因此它们会占用一部分物理内存，这在内存量较小的设备上可能会成为问题。
 
-但是在 x86_64 上，我们可以使用大小为 2MiB 的大页 ([huge pages](https://en.wikipedia.org/wiki/Page_%28computer_memory%29#Multiple_page_sizes)) 来进行映射，而不是使用默认的 4KiB 页。 这样一来，由于只需要一个 3 级表和 32 个 2 级表，映射 32 GiB 物理内存仅需要 132 KiB 大小的页表。 大页还可以提高缓存效率，因为它们在转译后备缓冲器（TLB）中使用的条目更少。
+但是在 x86_64 上，我们可以使用大小为 2MiB 的 huge 页 ([huge pages](https://en.wikipedia.org/wiki/Page_%28computer_memory%29#Multiple_page_sizes)) 来进行映射，而不是使用默认的 4KiB 页。 这样一来，由于只需要一个 3 级表和 32 个 2 级表，映射 32 GiB 物理内存仅需要 132 KiB 大小的页表。  huge 页还可以提高缓存效率，因为它们在转译后备缓冲器（TLB）中使用的条目更少。
 
 ### 临时映射
 
@@ -437,8 +437,6 @@ if !entry.is_unused() {
 ### 地址转换
 为了将虚拟地址转换为物理地址，我们必须遍历四级页表，直到到达映射的帧。 让我们创建一个执行此转换的函数：
 
-为了将虚拟地址转换为物理地址，我们必须遍历四级页表，直到到达映射的帧。 让我们创建一个执行此转换的函数：
-
 ```rust
 // in src/memory.rs
 
@@ -457,7 +455,7 @@ pub unsafe fn translate_addr(addr: VirtAddr, physical_memory_offset: VirtAddr)
 }
 ```
 
-我们将该函数转发给安全的`translate_addr_inner`函数，以限制不安全的范围。 如上所述，Rust将unsafe fn的整个主体视为一个大的unsafe块。 通过调用私有safe函数，我们使每个unsafe操作再次明确。
+我们将该函数转发给安全的`translate_addr_inner`函数，以限制 `unsafe` 的范围。 如上所述，Rust 将 `unsafe fn` 的整个函数体视为一个大的 `unsafe` 块。 通过调用私有safe函数，我们使每个 `unsafe` 操作是显式的。
 
 内部私有函数包含实际的实现：
 
@@ -504,11 +502,11 @@ fn translate_addr_inner(addr: VirtAddr, physical_memory_offset: VirtAddr)
 }
 ```
 
-我们不再重用我们的`active_level_4_table`函数，而是再次从`CR3`寄存器读取4级帧。我们这样做是因为它简化了此原型的实现。不用担心，我们稍后会创建一个更好的解决方案。
+我们不再重用我们的 `active_level_4_table` 函数，而是再次从`CR3`寄存器读取4级帧。我们这样做是因为它简化了此原型的实现。不用担心，我们稍后会创建一个更好的解决方案。
 
-`VirtAddr`结构已经提供了将索引计算到四个级别的页表中的方法。我们将这些索引存储在一个小的数组中，因为它允许我们使用for循环遍历页表。在循环之外，我们记得最后访问的帧，以便稍后计算物理地址。该框架在迭代时指向页表框架，并在最后一次迭代后（即在跟随1级条目之后）指向映射的框架。
+`VirtAddr` 结构已经提供了将索引计算到四个级别的页表中的方法。我们将这些索引存储在一个小的数组中，因为它允许我们使用 `for` 循环遍历页表。在循环之外，我们记住最后访问的帧，以便稍后计算物理地址。 `frame` 变量在迭代时指向页表帧，并在最后一次迭代后（即在跟随1级条目之后）指向映射的帧。
 
-在循环内部，我们再次使用`physical_memory_offset`将帧转换为页表引用。 然后，我们读取当前页表的条目，并使用`PageTableEntry::frame`函数检索映射的帧。 如果条目未映射到帧，则返回`None`。 如果条目映射了一个`2MiB`或`1GiB`的huge页面，我们现在会panic。
+在循环内部，我们再次使用 `physical_memory_offset` 将帧转换为页表引用。 然后，我们读取当前页表的条目，并使用 `PageTableEntry::frame` 函数检索映射的帧。 如果条目未映射到帧，则返回 `None`。 如果条目映射了一个 `2MiB` 或`1GiB` 的huge页面，我们现在会 panic。
 
 让我们通过翻译一些地址来测试我们的翻译功能：
 
@@ -549,21 +547,24 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 ![0xb8000 -> 0xb8000, 0x201008 -> 0x401008, 0x10000201a10 -> 0x279a10, "panicked at 'huge pages not supported'](https://os.phil-opp.com/paging-implementation/qemu-translate-addr.png)
 
-如预期的那样，恒等映射的地址`0xb8000`转换为相同的物理地址。代码页和堆栈页转换为一些任意的物理地址，这取决于引导加载程序如何为内核创建初始映射。值得注意的是，转换后的最后12位始终保持不变，这是有道理的，因为这些位是页面偏移量，而不是转换的一部分。
+如预期的那样，恒等映射的地址 `0xb8000` 转换为相同的物理地址。代码页和堆栈页转换为不定的物理地址，这取决于引导加载程序如何为内核创建初始映射。值得注意的是，转换后的最后12位始终保持不变，这也应该是这样的，因为这些位是页面偏移量，不是转换的一部分。
 
-由于可以通过添加`physical_memory_offset`来访问每个物理地址，因此`physical_memory_offset`地址本身的转换应指向物理地址0。但是，转换失败了，因为该映射使用huge页面来提高效率，这在我们的实现中尚不支持。
+由于可以通过添加 `physical_memory_offset` 来访问每个物理地址，因此 `physical_memory_offset` 地址本身的转换应指向物理地址0。但是，转换失败了，因为该映射使用 huge页 来提高效率，这在我们的实现中尚不支持。
 
-### 使用`OffsetPageTable`
-将虚拟地址转换为物理地址是OS内核中的常见任务，因此`x86_64` crate为其提供了抽象。该实现已经支持huge 页面和除`translate_addr`之外的其他几个页面表功能，因此我们将在下面使用它，而不是向我们自己的实现添加huge页面支持。
+### 使用 `OffsetPageTable`
+将虚拟地址转换为物理地址是OS内核中的常见任务，因此`x86_64` crate 为其提供了抽象。该实现已经支持 huge 页和其他几个页面表功能（除了 `translate_addr`），因此我们将在下面使用它，而不是向我们自己的实现添加 huge 页支持。
 
-抽象的基础是定义各种页表映射功能的两个trait：
+此抽象的基础是定义各种页表映射功能的两个 trait：
 
-- `Mapper` trait在页面大小上是通用的，并提供可在页面上运行的功能。例如：`translate_page`（将给定页面转换为相同大小的框架）和map_to（在页面表中创建新的映射）。
-- `MapperAllSizes`特性意味着实现者为所有页面大小实现Mapper。此外，它提供了适用于多种页面大小的功能，例如`translate_addr`或常规的`translate`。
+- `Mapper` trait 在页面大小上是通用的，并提供可在页面上操作的函数。例如：`translate_page` （将给定页转换为相同大小的帧）和 `map_to`（在页面表中创建新的映射）。
+- `MapperAllSizes` trait 意味着其实现者也同时为所有的页大小都实现 `Mapper`。此外，它提供了适用于多种页面大小的函数，例如 `translate_addr` 或常规的 `translate`。
 
-trait仅定义接口，它们不提供任何实现。当前，`x86_64` crate提供了三种类型，这些类型可实现具有不同要求的特征。 `OffsetPageTable`类型假定完整的物理内存以某个偏移量映射到虚拟地址空间。 `MappedPageTable`稍微灵活一些：它只需要将每个页表帧映射到可计算地址处的虚拟地址空间即可。最后，可以使用`RecursivePageTable`类型通过递归页表访问页表框架。
+trait 仅定义接口，它们不提供任何实现。当前，`x86_64` crate 提供了三种类型，根据不同的要求实现了这些 trait。
+`OffsetPageTable` 类型假定完整的物理内存以某个偏移量映射到虚拟地址空间。
+`MappedPageTable` 稍微灵活一些：它只需要将每个页表帧映射到可计算地址处的虚拟地址空间即可。
+最后，可以使用 `RecursivePageTable` 类型来通过递归页表访问页表帧。
 
-在我们的例子中，引导加载程序将完整的物理内存映射到由`physical_memory_offset`变量指定的虚拟地址，因此我们可以使用`OffsetPageTable`类型。要初始化它，我们在内存模块中创建一个新的`init`函数：
+在我们的例子中，引导加载程序将完整的物理内存映射到由 `physical_memory_offset` 变量指定的虚拟地址，因此我们可以使用 `OffsetPageTable` 类型。要初始化它，我们在 `memory` 模块中创建一个新的 `init` 函数：
 
 ```rust
 use x86_64::structures::paging::OffsetPageTable;
@@ -585,11 +586,14 @@ unsafe fn active_level_4_table(physical_memory_offset: VirtAddr)
 {…}
 ```
 
-该函数将`physical_memory_offset`作为参数，并返回一个具有`'static`生命周期的新`OffsetPageTable`实例。这意味着实例对于我们的内核的完整运行时保持有效。在函数主体中，我们首先调用`active_level_4_table`函数以检索对第4级页表的可变引用。然后，我们使用此引用调用`OffsetPageTable::new`函数。作为第二个参数，新函数期望在物理内存的映射处开始的虚拟地址，该地址在`physical_memory_offset`变量中给出。
+该函数接受 `physical_memory_offset` 作为参数，并返回一个具有 `'static` 生命周期的新 `OffsetPageTable` 实例。这意味着这个实例在内核整个的运行时都有效。
+在函数主体中，我们首先调用 `active_level_4_table` 函数以获取一个对第 4 级页表的可变引用。接着，我们使用这个引用来调用 `OffsetPageTable::new` 函数。
+`new` 函数的第二个参数需要一个虚拟地址，使得虚拟地址空间从此处开始映射物理地址空间，也就是 `physical_memory_offset` 变量。
 
-从现在开始，仅应从`init`函数调用`active_level_4_table`函数，因为当多次调用它时，它很容易使用可变的引用，这可能导致未定义的行为。因此，我们通过删除`pub`说明符来使函数私有。
+从现在开始，仅应从 `init` 函数调用 `active_level_4_table` 函数。
+因为如果多次调用它，很容易导致同名可变引用，从而导致未定义行为（UB）。因此，我们通过删除 `pub` 说明符来使函数私有。
 
-现在，我们可以使用`MapperAllSizes::translate_addr`方法来代替我们自己的`memory::translate_addr`函数。我们只需要在`kernel_main`中更改几行：
+现在，我们可以使用 `MapperAllSizes::translate_addr` 方法来代替我们自己的 `memory::translate_addr` 函数。我们只需要在 `kernel_main` 中更改几行：
 
 ```rust
 // in src/main.rs
@@ -618,17 +622,17 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 }
 ```
 
-我们需要导入`MapperAllSizes`trait以使用它提供的`translate_addr`方法。
+我们需要导入 `MapperAllSizes` trait 以使用它提供的 `translate_addr` 方法。
 
-现在运行它时，我们会看到与以前相同的翻译结果，不同之处在于huge页面翻译现在也可以工作：
+现在运行它时，我们会看到与以前相同的翻译结果，不同之处在于 huge页翻译现在也可以工作：
 
 ![0xb8000 -> 0xb8000, 0x201008 -> 0x401008, 0x10000201a10 -> 0x279a10, 0x18000000000 -> 0x0](https://os.phil-opp.com/paging-implementation/qemu-mapper-translate-addr.png)
 
-不出所料，`0xb8000`的转换以及代码和堆栈地址与我们自己的转换功能相同。 此外，我们现在看到虚拟地址`physical_memory_offset`映射到物理地址`0x0`。
+不出所料，`0xb8000` 的转换以及代码和堆栈地址与我们自己的转换功能相同。 此外，我们现在看到虚拟地址`physical_memory_offset` 映射到物理地址 `0x0`。
 
-通过使用`MappedPageTable`类型的转换功能，我们可以节省实施大型页面支持的工作。 我们还可以访问其他页面功能，例如`map_to`，我们将在下一部分中使用。
+通过使用 `MappedPageTable` 类型的转换函数，我们可以节省掉实现 huge 页的工作量。 我们现在还可以调用其他页函数了，例如 `map_to`，我们将在下一部分中使用。
 
-此时，我们不再需要`memory::translate_addr`函数，因此可以将其删除。
+此时，我们不再需要 `memory::translate_addr` 函数，因此可以将其删除。
 
 ### 创建一个新映射
 
