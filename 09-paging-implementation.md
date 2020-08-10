@@ -30,15 +30,15 @@ x86_64 = "0.7.5"
 
 ![An example 4-level page hierarchy with each page table shown in physical memory](https://os.phil-opp.com/paging-introduction/x86_64-page-table-translation.svg)
 
-这里重要的是每个页面条目都存储下一张表的物理地址。 这避免了也需要为这些地址运行转换，这将对性能造成不利影响，并很容易导致无限的转换循环。
+这里重要的是每个页面条目都存储下一张表的 *物理地址*。 这避免了再次为这些地址运行地址转换，否则将对性能造成不利影响，并很容易导致无限的转换循环。
 
-对我们来说，问题在于我们无法直接从内核访问物理地址，因为我们的内核还运行在虚拟地址之上。 例如，当我们访问地址4 KiB时，我们访问的是虚拟地址4 KiB，而不是存储第4级页表的物理地址4 KiB。 当我们要访问物理地址4 KiB时，我们只能通过一些映射到它的虚拟地址来进行访问。
+对我们来说，问题在于我们无法直接从内核访问物理地址，因为我们的内核也运行在虚拟地址之上。例如，当我们访问地址 `4 KiB` 时，我们访问的是 *虚拟* 地址 `4 KiB`，而不是存储第4级页表的 *物理* 地址 `4 KiB`。 当我们想访问 *物理* 地址 `4 KiB` 时，我们只能通过一些映射到它的虚拟地址来进行访问。
 
-因此，为了访问页表帧，我们需要将一些虚拟页映射到它们。 创建这些映射的方法有很多，所有这些方法都允许我们访问任意页表框架。
+因此，为了访问页表帧，我们需要将一些虚拟页映射到它们。 创建这些映射的方法有很多，所有这些方法都允许我们访问任意页表帧。
 
 ### 直接映射
 
-一个简单的解决方案是**对所有页表进行直接映射**：
+一个简单的解决方案是**对所有页表进行恒等映射**：
 
 ![A virtual and a physical address space with various virtual pages mapped to the physical frame with the same address](https://os.phil-opp.com/paging-implementation/identity-mapped-page-tables.svg)
 
