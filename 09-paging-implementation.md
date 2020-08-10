@@ -638,11 +638,11 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 
 到目前为止，我们仅查看页面表，而没有进行任何修改。让我们通过为以前未映射的页面创建一个新的映射来更改它。
 
-我们将使用`Mapper` trait 的`map_to`函数进行实现，因此让我们首先看一下该函数。文档告诉我们，它带有四个参数：我们要映射的页面，该页面应映射到的框架，页面表项的一组标志以及`frame_allocator`。我们需要一个帧分配器，因为映射给定页面可能需要创建其他页面表，这些页面表需要未使用的帧作为后备存储。
+我们将使用 `Mapper` trait 的 `map_to` 函数进行实现，因此让我们首先看一下该函数。 文档告诉我们，它接受四个参数：我们要映射的页面，该页面应映射到的帧，页表项的一组标记（flags）以及一个 `frame_allocator`（帧分配器）。我们需要一个帧分配器，因为映射给定页面可能需要创建其他页表，这些页表需要未使用的帧作为后备存储。
 
-#### `create_example_mapping`函数
+#### `create_example_mapping` 函数
 
-我们实现的第一步是创建一个新的`create_example_mapping`函数，该函数将给定的虚拟页面映射到`0xb8000`（VGA文本缓冲区的物理帧）。我们选择该帧是因为它使我们能够轻松测试映射是否正确创建：我们只需要向新映射的页面写入，然后查看是否看到写入内容出现在屏幕上。
+我们实现的第一步是创建一个新的 `create_example_mapping` 函数，该函数将给定的虚拟页面映射到 `0xb8000`（VGA文本缓冲区的物理帧）。我们选择该帧是因为它使我们能够轻松测试映射是否正确创建：我们只需要向新映射的页面写入，然后查看是否看到写入内容出现在屏幕上。
 
 `create_example_mapping`函数如下所示：
 
@@ -672,11 +672,16 @@ pub fn create_example_mapping(
 }
 ```
 
-除了应该映射的`page`之外，该函数还需要一个对`OffsetPageTable`实例的可变引用，和一个`frame_allocator`。 `frame_allocator`参数对实现了`FrameAllocator` trait 的所有类型通用。该特征在`PageSize` trait上具有通用性，可与标准4KiB页面和huge的2MiB/1GiB页面一起使用。我们只想创建4KiB映射，因此我们将通用参数设置为`Size4KiB`。
+除了应该映射到的 `page` 之外，该函数还需要一个对 `OffsetPageTable` 实例的可变引用，和一个 `frame_allocator`。
+`frame_allocator` 参数使用 `impl Trait` 语法以定义一个泛型函数来支持所有实现了 `FrameAllocator` 的参数类型。
+`FrameAllocator` trait 也是一个泛型，接受实现了 `PageSize` trait 的类型，以同时支持 4KiB 大小的页和 2MiB/1GiB 的页。
+这里我们只想创建 4KiB 大小的映射，因此我们设置泛型的参数为 `Size4KiB`。
 
-对于映射，我们设置`PRESENT`标志是因为所有有效条目都需要它，而`WRITABLE`标志则使映射的页面可写。调用`map_to`是不安全的，因为有可能使用无效的参数来破坏内存安全性，因此我们需要使用一个`unsafe`块。有关所有可能的标志的列表，请参见上一篇文章的“页面表格式”部分。
+`map_to` 方法被标记为 unsafe 的，因此调用者必须确保帧现在没有被使用。其原因是如果映射了同一个帧两次会导致未定义行为，例如两个不同的 `&mut` 引用指向了同一个物理地址。在我们这个例子中，我们重新使用 VGA 文字缓冲区帧，它已经被映射过了，我们破坏了调用条件。但是，`create_example_mapping` 函数只是一个我们用来临时测试的函数，我们马上将会删除它。为了提醒我们这个不安全因素，我们加上一句 `FIXME` 注释。
 
-`map_to`函数可能会失败，因此它将返回`Result`。由于这只是一些示例代码，不需要鲁棒性，因此我们仅在发生错误时使用`expect`来引发一个panic。成功后，该函数将返回MapperFlush类型，该类型提供了一种使用其flush方法从转换后备缓冲区（TLB）中刷新新映射页面的简便方法。像`Result`一样，当我们意外忘记使用它时，由于使用了`#[must_use]`属性，会发出一个警告。
+除了 `page` 和 `unused_frame` 参数，`map_to` 方法还接受一组 flags 和一个 `frame_allcator` 的引用，我们马上就会解释。对于这组 flags，我们设置 `PRESENT`，因为对于所有有效的条目它都是需要的；设置 `WRITABLE` 以使得被映射的页可写。查看所有可能的 flags，查看上一篇文章的“页面表格式”部分。
+
+`map_to`函数可能会失败，因此它将返回`Result`。由于这只是一些示例代码，不需要鲁棒性，因此我们直接在发生错误时使用`expect` 来引发一个panic。成功后，该函数将返回 `MapperFlush` 类型，该类型提供了一种使用其 `flush` 方法从转换后备缓冲区（TLB）中刷新新映射页面的简便方法。像 `Result` 一样，当我们意外忘记使用它时，由于使用了`#[must_use]`属性，会发出一个警告。
 
 #### 一个虚拟的FrameAllocator
 
