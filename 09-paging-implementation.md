@@ -243,7 +243,7 @@ frame.map(|frame| frame.start_address() + u64::from(addr.page_offset()))
 - `map_physical_memory` 功能将整个物理内存映射到虚拟地址空间中的某个位置。因此，内核可以访问所有物理内存，并且可以遵循 “映射完整物理内存” 方法。
 - 借助 `recursive_page_table` 功能，引导加载程序将递归映射一个 4 级页面表的条目。这允许内核按照“递归页面表”部分中的描述访问页面表。
 
-我们为内核选择第一种方法，因为它简单，平台无关且功能更强大（它还允许访问非页表框架）。为了启用所需的引导程序支持，我们将`map_physical_memory`功能添加到了引导程序依赖项中：
+我们为内核选择第一种方法，因为它简单，平台无关且功能更强大（它还允许访问 *非页表帧*）。为了启用所需的引导程序支持，我们将`map_physical_memory`功能添加到了引导程序依赖项中：
 
 ```toml
 [dependencies]
@@ -702,11 +702,11 @@ unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
 }
 ```
 
-实现 `FrameAllocator` 是 unsafe 的，因为实现者必须保证分配器仅返回未使用的帧。 否则可能会发生不确定的行为，例如，当两个虚拟页面映射到同一物理框架时。 我们的 `EmptyFrameAllocator` 只返回 `None`，因此在这种情况下这不是问题。
+实现 `FrameAllocator` 是 unsafe 的，因为实现者必须保证分配器仅返回未使用的帧。 否则可能会发生不确定的行为，例如，当两个虚拟页面映射到同一物帧时。 我们的 `EmptyFrameAllocator` 只返回 `None`，因此在这种情况下这不是问题。
 
 #### 选择虚拟页面
 
-现在，我们有了一个简单的帧分配器，可以将其传递给 `create_example_mapping` 函数。 但是，分配器始终返回`None`，因此只有在不需要其他页表框架来创建映射时，此分配器才起作用。 要了解何时需要其他页表框架以及何时不需要，我们考虑一个示例：
+现在，我们有了一个简单的帧分配器，可以将其传递给 `create_example_mapping` 函数。 但是，分配器始终返回`None`，因此只有在不需要其他页表帧来创建映射时，此分配器才起作用。 要了解何时需要其他页表帧以及何时不需要，我们考虑一个示例：
 
 ![A virtual and a physical address space with a single mapped page and the page tables of all four levels](https://os.phil-opp.com/paging-implementation/required-page-frames-example.svg)
 
