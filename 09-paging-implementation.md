@@ -723,7 +723,7 @@ unsafe impl FrameAllocator<Size4KiB> for EmptyFrameAllocator {
 
 #### 创建映射
 
-现在，我们有了用于调用`create_example_mapping`函数的所有必需参数，因此让我们修改`kernel_main`函数，以将页面映射到虚拟地址0。由于我们将页面映射到VGA文本缓冲区的帧，因此我们应该能够向屏幕写入。实现看起来像这样：
+现在，我们有了用于调用 `create_example_mapping` 函数的所有必需参数，因此让我们修改 `kernel_main` 函数，以将页面映射到虚拟地址 0。由于我们将页面映射到VGA文本缓冲区的帧，因此我们应该能够向屏幕写入。实现看起来像这样：
 
 ```rust
 // in src/main.rs
@@ -750,17 +750,17 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 }
 ```
 
-我们首先通过调用`create_example_mapping`函数来调用地址0处的页面的映射。 这会将页面映射到VGA文本缓冲区框架，因此我们应该在屏幕上看到对其进行的任何写入。
+我们首先通过调用 `create_example_mapping` 函数来调用地址 `0` 处的页面的映射。 这会将页面映射到 VGA 文本缓冲区帧，因此我们应该在屏幕上看到对其进行的写入。
 
-然后，我们将页面转换为原始指针，并向偏移量400写入一个值。我们不写入页面的开头，因为VGA缓冲区的第一行直接由下一个println移出屏幕。 我们写入值`0x_f021_f077_f065_f04e`，它表示字符串“ New！”。 在白色背景上。 正如我们在“ VGA Text Mode”（VGA文本模式）文章中所了解的那样，对VGA缓冲区的写入应该是易失的，因此我们使用`write_volatile`方法。
+然后，我们将页面转换为原始指针，并向偏移量 `400` 写入一个值。我们不写入页面的开头，因为VGA缓冲区的第一行直接由下一个 `println` 移出屏幕。 我们写入值`0x_f021_f077_f065_f04e`，它表示字符串“ New！”。 在白色背景上。 正如我们在“ VGA Text Mode”（VGA文本模式）文章中所了解的那样，对VGA缓冲区的写入应该是易失的，因此我们使用`write_volatile` 方法。
 
-在QEMU中运行它时，将看到以下输出：
+在 QEMU 中运行它时，将看到以下输出：
 
 ![QEMU printing "It did not crash!" with four completely white cells in the middle of the screen](https://os.phil-opp.com/paging-implementation/qemu-new-mapping.png)
 
-屏幕上的 "New!" 是通过写入第`0`页来显示的，这意味着我们已在页表中成功创建了新映射。
+屏幕上的 "New!" 是通过写入第 `0` 页来显示的，这意味着我们已在页表中成功创建了新映射。
 
-仅因为负责地址0的页面的1级表已经存在，所以创建该映射才起作用。 当我们尝试为尚不存在1级表的页面进行映射时，`map_to`函数将失败，因为它试图从`EmptyFrameAllocator`分配帧以创建新的页表。 当我们尝试映射页面`0xdeadbeaf000`而不是`0`时，我们可以看到这种情况：
+仅因为负责地址0的页面的1级表已经存在，所以创建该映射才起作用。 当我们尝试为尚不存在1级表的页面进行映射时，`map_to`函数将失败，因为它试图从 `EmptyFrameAllocator` 分配帧以创建新的页表。 当我们尝试映射页面 `0xdeadbeaf000` 而不是 `0` 时，我们可以看到这种情况：
 
 ```rust
 // in src/main.rs
@@ -778,10 +778,10 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 panicked at 'map_to failed: FrameAllocationFailed', /…/result.rs:999:5
 ```
 
-要映射没有1级页面表的页面，我们需要创建一个适当的`FrameAllocator`。 但是我们如何知道哪些帧未使用以及有多少物理内存可用？
+要映射没有 1 级页面表的页面，我们需要创建一个适当的`FrameAllocator`。 但是我们如何知道哪些帧未使用以及有多少物理内存可用？
 
 #### 分配帧
-为了创建新的页表，我们需要创建一个适当帧分配器。 为此，我们使用由引导程序作为`BootInfo`结构的一部分传递的`memory_map`：
+为了创建新的页表，我们需要创建一个适当帧分配器。 为此，我们使用 `memory_map`，它由引导程序作为 `BootInfo` 结构的一部分传递：
 
 ```rust
 // in src/memory.rs
@@ -809,11 +809,11 @@ impl BootInfoFrameAllocator {
 }
 ```
 
-该结构有两个字段：对引导加载程序传递的内存映射的`'static`引用，以及一个跟踪分配器应返回的下一帧的编号的`next`字段。
+该结构有两个字段：对引导加载程序传递的内存映射的 `'static` 引用，以及一个跟踪分配器应返回的下一帧的编号的`next`字段。
 
-如我们在“引导信息”部分所述，内存映射由BIOS / UEFI固件提供。它只能在引导过程的早期被查询，因此引导加载程序已经为我们调用了相应的函数。存储器映射由`MemoryRegion`结构的列表组成，这些结构包含每个存储器区域的起始地址，长度和类型（例如未使用，保留等）。
+如我们在“引导信息”部分所述，内存映射由BIOS / UEFI固件提供。它只能在引导过程的早期被查询，因此引导加载程序已经为我们调用了相应的函数。内存映射由 `MemoryRegion` 结构的列表组成，这些结构包含每个存储器区域的起始地址，长度和类型（例如未使用，保留等）。
 
-初始化函数使用给定的内存映射初始化`BootInfoFrameAllocator`。下一个字段用0初始化，并且将在每次帧分配时递增，以避免两次返回同一帧。由于我们不知道内存映射的可用帧是否已在其他地方使用，因此我们的`init`函数必须unsafe才能要求调用者提供其他保证。
+`init` 函数使用给定的内存映射初始化一个 `BootInfoFrameAllocator`。`next` 字段用 `0` 初始化，并且将在每次帧分配时递增，以避免两次返回同一帧。由于我们不知道内存映射的可用帧是否已在其他地方使用，因此我们的 `init` 函数必须为 `unsafe` 才能要求调用者提供额外的保证。
 
 #### `usable_frames`方法
 
@@ -844,14 +844,16 @@ impl BootInfoFrameAllocator {
 
 ```
 
-此函数使用迭代器组合子方法将初始`MemoryMap`转换为可用物理帧的迭代器：
+此函数使用迭代器组合子方法将初始 `MemoryMap` 转换为可用物理帧的迭代器：
 
-- 首先，我们调用`ite`r方法将内存映射转换为MemoryRegions的迭代器。
-- 然后，我们使用`filter`方法跳过任何保留的区域或其他不可用的区域。引导加载程序会为其创建的所有映射更新内存映射，因此内核使用的帧（代码，数据或堆栈）或用于存储引导信息的帧已被标记为InUse或类似的。因此，我们可以确定可用框架不会在其他地方使用。
-- 之后，我们使用`map`组合子和Rust的range语法将内存区域的迭代器转换为地址范围的迭代器。
-- 下一步是最复杂的：我们通过`into_iter`方法将每个范围转换为一个迭代器，然后使用`step_by`选择每个范围内的第4096个地址。由于页面大小为4096字节（= 4 KiB），因此我们获得了每个帧的起始地址。 Bootloader页面会对齐所有可用的内存区域，因此我们在此处不需要任何对齐或舍入代码。通过使用`flat_map`而不是`map`，我们得到了`Iterator <Item = u64>`而不是`Iterator <Item = Iterator <Item = u64 >>`。
-- 最后，我们将起始地址转换为`PhysFrame`类型，以构造所需的`Iterator <Item = PhysFrame>`。然后，我们使用此迭代器创建并返回一个新的`BootInfoFrameAllocator`。
-  该函数的返回类型使用`impl Trait`功能。这样，我们可以指定返回某种类型为`PhysFrame`的实现`Iterator `trait的类型，而无需命名具体的返回类型。这一点很重要，因为我们无法命名具体类型，因为它取决于不可命名的闭包类型。
+- 首先，我们调用 `iter` 方法将内存映射转换为 `MemoryRegions` 的迭代器。
+- 然后，我们使用 `filter` 方法跳过任何保留的区域或其他不可用的区域。引导加载程序会为其创建的所有映射更新内存映射，因此内核使用的帧（代码，数据或堆栈）或用于存储引导信息的帧已被标记为 `InUse` 或类似的。因此，我们可以确定 `Usable` 帧没有在其他地方使用。
+- 之后，我们使用 `map` 组合子和Rust的range语法将内存区域的迭代器转换为地址范围的迭代器。
+- 下一步是最复杂的：我们通过 `into_iter` 方法将每个范围转换为一个迭代器，然后使用 `step_by` 隔 4096 选择范围内的每个地址。由于页面大小为4096字节（= 4 KiB），因此我们获得了每个帧的起始地址。 Bootloader 页面会对齐所有可用的内存区域，因此我们在此处不需要任何对齐或舍入代码。通过使用 `flat_map` 而不是 `map`，我们得到了 `Iterator <Item = u64>` 而不是 `Iterator <Item = Iterator <Item = u64 >>`。
+- 最后，我们将起始地址转换为 `PhysFrame` 类型，以构造所需的 `Iterator <Item = PhysFrame>`。然后，我们使用此迭代器创建并返回一个新的 `BootInfoFrameAllocator`。
+  
+该函数的返回类型使用 `impl Trait` 功能。
+这样一来，我们可以指出我们返回了一种类型，其实现了 `Iterator` trait，item 类型为 `PhysFram`，而不需要命名具体的返回类型。这一点很重要，因为我们无法命名具体类型，因为它取决于不可命名的闭包类型。
 
 #### 实现 `FrameAllocator` Trait
 
@@ -869,13 +871,13 @@ unsafe impl FrameAllocator<Size4KiB> for BootInfoFrameAllocator {
 }
 ```
 
-我们首先使用`usable_frames`方法从内存映射中获取可用帧的迭代器。 然后，我们使用`Iterator::nth`函数获取索引为`self.next`的帧（从而跳过`(self.next-1)`帧）。 在返回该帧之前，我们将`self.next`增加一，以便在下一次调用时返回下一个帧。
+我们首先使用 `usable_frames` 方法从内存映射中获取可用帧的迭代器。 然后，我们使用 `Iterator::nth` 函数获取索引为 `self.next` 的帧（从而跳过 `(self.next-1)` 帧）。 在返回该帧之前，我们将`self.next`增加一，以便在下一次调用时返回下一个帧。
 
-这种实现方式并不是十分理想，因为它会在每次分配时重新创建`usable_frame`分配器。 最好直接将迭代器存储为`struct`字段。 然后，我们将不需要`nth`方法，而只需对每个分配调用`next`。 这种方法的问题在于，当前无法在`struct`字段中存储`impl Trait`类型。完全实现[具名存在性类型](https://github.com/rust-lang/rfcs/pull/2071)的某天，这个方法可能可以使用。
+这种实现方式并不是十分理想，因为它会在每次分配时都重新创建 `usable_frame` 分配器。 最好直接将迭代器存储为`struct` 字段。 然后，我们将不需要 `nth` 方法，而只需对每个分配调用 `next`。 这种方法的问题在于，当前无法在`struct` 字段中存储 `impl Trait` 类型。等将来完全实现了 [具名存在性类型](https://github.com/rust-lang/rfcs/pull/2071) ，这个方法可能可以使用。
 
 #### 使用`BootInfoFrameAllocator`
 
-现在，我们可以修改`kernel_main`函数，以传递`BootInfoFrameAllocator`实例而不是`EmptyFrameAllocator`：
+现在，我们可以修改 `kernel_main` 函数，以传递 `BootInfoFrameAllocator` 实例而不是 `EmptyFrameAllocator`：
 
 ```rust
 // in src/main.rs
@@ -890,22 +892,22 @@ fn kernel_main(boot_info: &'static BootInfo) -> ! {
 }
 ```
 
-使用引导信息帧分配器，映射成功了，并且我们看到了黑白“ New！” 再次出现在屏幕上。 在后台，`map_to`方法通过以下方式创建缺少的页表：
+使用引导信息帧分配器，映射成功了，并且我们看到了黑白“ New！” 再次出现在屏幕上。 在后台，`map_to` 方法通过以下方式创建缺少的页表：
 
-- 从传递的`frame_allocator`中分配未使用的帧。
-- 将帧内容全部设置为0以创建一个新的空页表。
-- 将更高级别的表的条目映射到该框架。
+- 从传递的 `frame_allocator` 中分配未使用的帧。
+- 将帧内容全部设置为 `0` 以创建一个新的空页表。
+- 将更高级别的表的条目映射到该帧。
 - 继续下一个表格级别。
 
-尽管我们的`create_example_mapping`函数只是一些示例代码，但我们现在能够为任意页面创建新的映射。 这对于在以后的帖子中分配内存或实现多线程至关重要。
+尽管我们的 `create_example_mapping` 函数只是一些示例代码，但我们现在能够为任意页面创建新的映射。 这对于在以后的帖子中分配内存或实现多线程至关重要。
 
 ## 总结
 
 在这篇文章中，我们了解了访问页表物理帧的各种技术，包括恒等映射，完整物理内存的映射，临时映射和递归页表。 我们选择映射完整的物理内存，因为它简单，可移植且功能强大。
 
-没有页表访问权限，我们无法映射内核中的物理内存，因此我们需要引导加载程序的支持。 引导加载程序板条箱支持通过可选的货物功能创建所需的映射。 它将所需信息以`&BootInfo`参数的形式传递给我们的内核，该参数传递给我们的入口点函数。
+没有页表访问权限，我们无法映射内核中的物理内存，因此我们需要引导加载程序的支持。 `bootloader` crate 支持通过可选的 cargo features 创建所需的映射。 它将所需信息以 `&BootInfo` 参数的形式传递给我们的内核入口函数。
 
-对于我们的实现，我们首先手动遍历页表以实现转换功能，然后使用`x86_64`crate 的`MappedPageTable`类型。 我们还学习了如何在页表中创建新的映射，以及如何在引导加载程序传递的内存映射之上创建必要的`FrameAllocator`。
+对于我们的实现，我们首先手动遍历页表以实现地址翻译功能，然后使用 `x86_64` crate 的 `MappedPageTable` 类型。 我们还学习了如何在页表中创建新的映射，以及如何在引导加载程序传递的内存映射之上创建必要的 `FrameAllocator`。
 
 ## 接下来？
 
