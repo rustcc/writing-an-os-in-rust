@@ -95,17 +95,17 @@ x86_64 = "0.7.5"
 
 ### 递归页表
 
-另一个根本不需要其他页表的有趣方法是递归映射页表。 这种方法背后的想法是将4级页面表的某些条目映射到4级表本身。 通过这样做，我们有效地保留了虚拟地址空间的一部分，并将所有当前和将来的页表框架映射到该空间。
+另一个有趣的方法——根本不需要额外页表——是递归地映射页表。 这种方法的思想是将 4 级页面表的某些条目映射到 4 级表本身。 通过这样做，我们有效地保留了虚拟地址空间的一部分，并将所有当前和将来的页表帧映射到该空间。
 
 让我们通过一个例子来理解这一切是如何工作的：
 
 ![An example 4-level page hierarchy with each page table shown in physical memory. Entry 511 of the level 4 page is mapped to frame 4KiB, the frame of the level 4 table itself.](https://os.phil-opp.com/paging-implementation/recursive-page-table.png)
 
-与本文开头示例的唯一区别是，级别4表中索引`511`处的附加条目被映射到级别4表本身的帧`4 KiB`。
+与本文开头示例的唯一区别是，第 4 级表中索引为 `511` 的条目被映射到了物理帧`4 KiB`，也就是这个 4 级表它本身。
 
-通过让CPU在翻译中跟踪此条目，它不会到达3级表，而又到达同一4级表。这类似于调用自身的递归函数，因此此表称为递归页表。重要的是，CPU假定4级表中的每个条目都指向3级表，因此现在将4级表视为3级表。这是可行的，因为所有级别的表在x86_64上的布局都完全相同。
+当 CPU 在翻译地址的过程中跟随这个条目，它不会到达一个 3 级表，而是又到达同一个 4 级表。这类似于一个调用自身的递归函数，因此这个表被称为 *递归页表* 。需要注意的是，CPU 假定 4 级表中的每个条目都指向一个 3 级表，因此现在 CPU 将这个 4 级表视为一个 3 级表。这是可行的，因为在x86_64上，所有级别的页表的布局都完全相同。
 
-通过在开始实际转换之前跟踪递归项一次或多次，我们可以有效地缩短CPU遍历的级别数。例如，如果我们只跟踪一次递归条目，然后进入3级表，则CPU认为3级表是2级表。更进一步，它将2级表视为1级表，1级表视为映射的帧。这意味着我们现在可以读写1级页表，因为CPU认为它是映射的帧。下图说明了5个翻译步骤：
+通过在开始实际转换之前进行一次或多次递归，我们可以有效地缩短CPU遍历的级别数。例如，如果我们只跟踪一次递归条目，然后进入 3 级表，则CPU认为 3 级表是 2 级表。更进一步，它将 2 级表视为 1 级表，1 级表视为映射的帧。这意味着我们现在可以读写1级页表，因为CPU认为它是映射的帧。下图说明了5个翻译步骤：
 
 ![The above example 4-level page hierarchy with 5 arrows: "Step 0" from CR4 to level 4 table, "Step 1" from level 4 table to level 4 table, "Step 2" from level 4 table to level 3 table, "Step 3" from level 3 table to level 2 table, and "Step 4" from level 2 table to level 1 table.](https://os.phil-opp.com/paging-implementation/recursive-page-table-access-level-1.png)
 
@@ -113,13 +113,18 @@ x86_64 = "0.7.5"
 
 ![The same 4-level page hierarchy with the following 4 arrows: "Step 0" from CR4 to level 4 table, "Steps 1&2" from level 4 table to level 4 table, "Step 3" from level 4 table to level 3 table, and "Step 4" from level 3 table to level 2 table.](https://os.phil-opp.com/paging-implementation/recursive-page-table-access-level-2.png)
 
-让我们一步步看：首先，CPU跟踪4级表上的递归条目，并认为它已到达3级表。然后，它再次遵循递归条目，并认为它到达了2级表。但实际上，它仍然位于4级表中。现在，CPU跟着另一个条目进入时，它将降落在3级表上，但认为它已经在1级表上。因此，当下一个条目指向2级表时，CPU认为它指向映射的帧，这使我们可以读写2级表。
+让我们一步步看：首先，CPU 根据 4 级表上的递归条目进行跳转，并认为它到达了一个 3 级表。然后，它再次进行递归，并认为它到达了一个 2 级表。但实际上，它仍然位于此 4 级表中。现在，CPU跟着另一个不同的条目跳转时，它将实际到达一个 3 级表，但 CPU 认为它已经到了一个 1 级表上。因此，当下一个条目指向2级表时，CPU 认为它指向一个被映射的帧。这使我们可以读写2级表。
 
-访问3级和4级表的工作方式相同。为了访问3级表，我们遵循了3次递归条目，使CPU认为它已经在1级表中。然后，我们跟随另一个条目并到达第3级表，CPU将其视为映射帧。要访问4级表本身，我们只需遵循递归项四次，直到CPU将4级表本身视为映射帧（下图中的蓝色）。
+访问3级和4级表的工作方式相同。为了访问3级表，我们跟随递归条目进行了 3 次跳转，使CPU认为它已经在1级表中。然后，我们跟随另一个条目并到达第 3 级表，CPU将其视为映射帧。要访问4级表本身，我们只需遵循递归项四次，直到CPU将4级表本身视为映射帧（下图中的蓝色）。
 
 ![The same 4-level page hierarchy with the following 3 arrows: "Step 0" from CR4 to level 4 table, "Steps 1,2,3" from level 4 table to level 4 table, and "Step 4" from level 4 table to level 3 table. In blue the alternative "Steps 1,2,3,4" arrow from level 4 table to level 4 table.](https://os.phil-opp.com/paging-implementation/recursive-page-table-access-level-3.png)
 
-### 地址计算
+你可能需要一点时间理清楚这些概念，但是它在实际中很有用。
+
+在下面的部分，我们将解释如何构建虚拟地址以方便进行一次或多次的递归。在我们实际的内核实现中我们不会使用递归页表，所以你可以不继续读下面这部分了。但如果你觉得有兴趣，可以点击“地址计算”以展开。
+
+<details>
+<summary> 地址计算 </summary>
 
 我们看到我们可以通过在实际翻译之前递归一次或多次来访问所有级别的表。 由于四个级别的表中的索引直接来自虚拟地址，因此我们需要为此技术构建特殊的虚拟地址。 请记住，页表索引是通过以下方式从地址中得到的：
 
@@ -218,6 +223,8 @@ frame.map(|frame| frame.start_address() + u64::from(addr.page_offset()))
 ```
 
 同样，此代码需要有效的递归映射。 使用这种映射，可以像第一个代码示例中那样计算`level_4_table_addr`。
+
+</details>
 
 递归分页是一种有趣的技术，它可以显示页表中单个映射的功能。 它相对容易实现，只需要最少的设置（只需一个递归项），因此它是第一个分页实验的不错选择。
 
