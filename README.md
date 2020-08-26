@@ -1,6 +1,6 @@
 # writing-an-os-in-rust
 
-《使用 Rust 编写操作系统》简体中文翻译
+《编写 Rust 语言的操作系统》简体中文翻译
 
 ## 目录
 
