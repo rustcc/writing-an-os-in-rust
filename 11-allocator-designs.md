@@ -411,7 +411,7 @@ impl ListNode {
 }
 ```
 
-该类型具有一个名为`new`的简单构造函数，以及用于计算所表示区域的开始和结束地址的方法。我们将`new`函数设为[const函数](https://doc.rust-lang.org/reference/items/functions.html#const-functions) ，稍后在构造静态链表分配器时将需要使用该函数。 请注意，在const函数中使用可变引用（包括将`next`字段设置为`None` ）仍然不稳定。 为了使其能够编译，我们需要在`lib.rs`的开头添加 **`#![feature(const_fn)]`** 。
+该类型具有一个名为`new`的简单构造函数，以及用于计算所表示区域的开始和结束地址的方法。我们将`new`函数设为[const函数](https://doc.rust-lang.org/reference/items/functions.html#const-functions) ，稍后在构造静态链表分配器时将需要使用该函数。 请注意，在const函数中使用可变引用（包括将`next`字段设置为`None` ）仍然不稳定。 为了使其能够编译，我们需要在`lib.rs`的开头添加 **`#![feature(const_mut_refs)]`** 。
 
 使用`ListNode`结构作为构建块，我们现在可以创建`LinkedListAllocator`结构：
 
