@@ -15,7 +15,7 @@ summary: 这篇文章介绍了如何从头开始实现堆分配器。它提出�
 
 分配器的职责是管理可用的堆内存。 它需要在`alloc`调用中返回未使用的内存，并跟踪由`dealloc`释放的内存，以便可以再次重用它。 最重要的是，它绝不能重复分配已经在其他地方使用的内存，因为这会导致不确定的行为。
 
-除了正确性之外，还有许多次要设计目标。 例如，分配器应有效地利用可用内存并使[*碎片*]	(https://en.wikipedia.org/wiki/Fragmentation_(computing))减少。此外，它对于并发应用程序应能很好地工作，并可扩展到任意数量的处理器。 为了获得最佳性能，它甚至可以针对CPU缓存优化内存布局，以提高[缓存亲和性](http://docs.cray.com/books/S-2315-50/html-S-2315-50/qmeblljm.html)并避免[False Sharing](http://mechanical-sympathy.blogspot.de/2011/07/false-sharing.html) 。
+除了正确性之外，还有许多次要设计目标。 例如，分配器应有效地利用可用内存并使[*碎片*](https://en.wikipedia.org/wiki/Fragmentation_(computing))减少。此外，它对于并发应用程序应能很好地工作，并可扩展到任意数量的处理器。 为了获得最佳性能，它甚至可以针对CPU缓存优化内存布局，以提高[缓存亲和性](http://docs.cray.com/books/S-2315-50/html-S-2315-50/qmeblljm.html)并避免[False Sharing](http://mechanical-sympathy.blogspot.de/2011/07/false-sharing.html) 。
 
 这些要求会使好的分配器非常复杂。 例如， [jemalloc](http://jemalloc.net/)具有超过30,000行代码。 通常我们不希望内核代码中的分配器如此复杂，因为其中的单个错误会就会导致严重的安全漏洞。 幸运的是，与用户空间代码相比，内核代码的分配模式通常要简单得多，因此相对简单的分配器设计通常就足够了。
 
@@ -378,10 +378,11 @@ Error: panicked at 'allocation error: Layout { size_: 8, align_: 8 }', src/lib.r
 // in src/allocator.rs
 
 pub mod linked_list;
-// in src/allocator/linked_list.rs
 ```
 
 ```rust
+// in src/allocator/linked_list.rs
+
 struct ListNode {
     size: usize,
     next: Option<&'static mut ListNode>,
@@ -410,7 +411,7 @@ impl ListNode {
 }
 ```
 
-该类型具有一个名为`new`的简单构造函数，以及用于计算所表示区域的开始和结束地址的方法。我们将`new`函数设为[const函数](https://doc.rust-lang.org/reference/items/functions.html#const-functions) ，稍后在构造静态链表分配器时将需要使用该函数。 请注意，在const函数中使用可变引用（包括将`next`字段设置为`None` ）仍然不稳定。 为了使其能够编译，我们需要在**`#![feature(const_fn)]`**的开头添加**`#![feature(const_fn)]`** 。
+该类型具有一个名为`new`的简单构造函数，以及用于计算所表示区域的开始和结束地址的方法。我们将`new`函数设为[const函数](https://doc.rust-lang.org/reference/items/functions.html#const-functions) ，稍后在构造静态链表分配器时将需要使用该函数。 请注意，在const函数中使用可变引用（包括将`next`字段设置为`None` ）仍然不稳定。 为了使其能够编译，我们需要在`lib.rs`的开头添加 **`#![feature(const_fn)]`** 。
 
 使用`ListNode`结构作为构建块，我们现在可以创建`LinkedListAllocator`结构：
 
