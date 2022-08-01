@@ -75,7 +75,7 @@ ACPI -------------> |            |   键盘 --------------> |            |      
 # in Cargo.toml
 
 [dependencies]
-pic8259_simple = "0.1.1"
+pic8259 = "0.10.0"
 ```
 
 这个包提供的主要抽象是 [`ChainedPics`] 结构，它表示我们上面看到的「主/从二级可编程中断控制器」布局。基于它的设计，我们可以按以下方式来使用它：
@@ -85,7 +85,7 @@ pic8259_simple = "0.1.1"
 ```rust
 // in src/interrupts.rs
 
-use pic8259_simple::ChainedPics;
+use pic8259::ChainedPics;
 use spin;
 
 pub const PIC_1_OFFSET: u8 = 32;
