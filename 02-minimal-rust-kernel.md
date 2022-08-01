@@ -298,7 +298,7 @@ bootloader = "0.6.0"
 cargo install bootimage --version "^0.7.3"
 ```
 
-参数`^0.7.3`是一个**脱字号条件**（[caret requirement](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements)），它的意义是“0.7.3版本或一个兼容0.7.3的新版本”。这意味着，如果这款工具发布了修复bug的版本`0.7.4`或`0.7.5`，cargo将会自动选择最新的版本，因为它依然兼容`0.7.x`；但cargo不会选择`0.8.0`，因为这个版本被认为并不和`0.7.x`系列版本兼容。需要注意的是，`Cargo.toml`中定义的依赖包版本都默认是脱字号条件：刚才我们指定`bootloader`包的版本时，遵循的就是这个原则。
+参数`^0.7.3`是一个**兼容性caret包版本依赖**（[caret requirement](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html#caret-requirements)），它的意义是“0.7.3版本或一个兼容0.7.3的新版本”。这意味着，如果这款工具发布了修复bug的版本`0.7.4`或`0.7.5`，cargo将会自动选择最新的版本，因为它依然兼容`0.7.x`；但cargo不会选择`0.8.0`，因为这个版本被认为并不和`0.7.x`系列版本兼容。需要注意的是，`Cargo.toml`中定义的依赖包版本都默认是脱字号条件：刚才我们指定`bootloader`包的版本时，遵循的就是这个原则。
 
 为了运行`bootimage`以及编译引导程序，我们需要安装rustup模块`llvm-tools-preview`——我们可以使用`rustup component add llvm-tools-preview`来安装这个工具。
 
@@ -307,6 +307,73 @@ cargo install bootimage --version "^0.7.3"
 ```bash
 > cargo bootimage
 ```
+
+**NOTE**
+备注：`2020-06-02`按此文档实验时，会出现如下错误
+```
+error: legacy asm! syntax is no longer supported
+  --> /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/instructions/interrupts.rs:16:9
+   |
+16 |         asm!("sti" :::: "volatile");
+   |         ----^^^^^^^^^^^^^^^^^^^^^^^^
+   |         |
+   |         help: replace with: `llvm_asm!`
+ .... 省略部分报错信息
+error: legacy asm! syntax is no longer supported
+  --> /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/src/registers/mod.rs:13:9
+   |
+13 |           asm!(
+   |           ^---
+   |           |
+   |  _________help: replace with: `llvm_asm!`
+   | |
+14 | |             "lea (%rip), $0"
+15 | |             : "=r"(rip) ::: "volatile"
+16 | |         );
+   | |__________^
+
+error: aborting due to 33 previous errors
+
+error: could not compile `x86_64`.
+
+To learn more, run the command again with --verbose.
+warning: build failed, waiting for other jobs to finish...
+error: build failed
+Error: Kernel build failed
+```
+根本原因是因为rust把`asm`关键字改成了`llvm_asm`关键字。因此，需要对下载下来的源码做一定的修改。
+修改步骤如下，针对上面报错的环境，修改如下：
+
+```bash
+old=`pwd`
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.2/
+find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
+find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
+
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/x86_64-0.7.7/
+find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
+find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
+
+cd /home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4
+find . -name "*.rs" | xargs -i sed -i "s,asm,llvm_asm,g" {}
+find . -name "*.rs" | xargs -i sed -i "s,global_llvm_asm,global_asm,g" {}
+
+cd $old
+```
+
+修改后，可以得到如下输出
+
+```
+$ cargo bootimage
+Building kernel
+    Finished dev [unoptimized + debuginfo] target(s) in 0.08s
+Building bootloader
+   Compiling bootloader v0.6.4 (/home/labuser/.cargo/registry/src/github.com-1ecc6299db9ec823/bootloader-0.6.4)
+    Finished release [optimized + debuginfo] target(s) in 3.06s
+```
+
+最终bootimage位于`./target/x86_64-blog_os/debug/bootimage-blog_os.bin`.
+
 
 可以看到的是，`bootimage`工具开始使用`cargo xbuild`编译你的内核，所以它将增量编译我们修改后的源码。在这之后，它会编译内核的引导程序，这可能将花费一定的时间；但和所有其它依赖包相似的是，在首次编译后，产生的二进制文件将被缓存下来——这将显著地加速后续的编译过程。最终，`bootimage`将把内核和引导程序组合为一个可引导的磁盘映像。
 
@@ -327,6 +394,13 @@ cargo install bootimage --version "^0.7.3"
 ```bash
 > qemu-system-x86_64 -drive format=raw,file=bootimage-blog_os.bin
 ```
+
+**备注**
+2020-06-02，如果要在WSL中运行qemu，可以采用如下办法:
+```
+qemu-system-x86_64 -drive format=raw,file=./target/x86_64-blog_os/debug/bootimage-blog_os.bin -curses
+```
+退出时，按`Alt + 2`，然后再输入quit。
 
 ![qemu的显示内容](https://os.phil-opp.com/minimal-rust-kernel/qemu.png)
 
