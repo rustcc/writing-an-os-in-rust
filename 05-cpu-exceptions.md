@@ -411,7 +411,7 @@ blog_os::interrupts::test_breakpoint_exception...	[ok]
 
 ## 过于抽象?（ Too much Magic?）
 
- `x86-interrupt` 调用约定和 [`InterruptDescriptorTable`](https://docs.rs/x86_64/0.12.1/x86_64/structures/idt/struct.InterruptDescriptorTable.html) 让异常处理流程变得相当简单愉快。如果你觉得太过抽象或有兴趣学习异常处理更硬核的细节，[“Handling Exceptions with Naked Functions”](https://os.phil-opp.com/first-edition/extra/naked-exceptions/)  系列会告诉你如何在不使用 `x86-interrupt` 调用约定的情况下处理异常并建立自己的IDT类型。在 `x86-interrupt` 调用约定和 `x86_64` 库问世以前，这个系列可以说是最主流的异常处理主体相关的博客。不得不提的是，这些文章基于第一版本的 [Writing an OS in Rust ](https://os.phil-opp.com/first-edition/)，所以可能会有些过时。
+ `x86-interrupt` 调用约定和 [`InterruptDescriptorTable`](https://docs.rs/x86_64/0.12.1/x86_64/structures/idt/struct.InterruptDescriptorTable.html) 让异常处理流程变得相当简单愉快。如果你觉得太过抽象或有兴趣学习异常处理更硬核的细节，[“Handling Exceptions with Naked Functions”](https://os.phil-opp.com/first-edition/extra/naked-exceptions/)  系列会告诉你如何在不使用 `x86-interrupt` 调用约定的情况下处理异常并建立自己的IDT类型。在 `x86-interrupt` 调用约定和 `x86_64` 库问世以前，这个系列可以说是最主流的异常处理主题相关的博客。不得不提的是，这些文章基于第一版本的 [Writing an OS in Rust ](https://os.phil-opp.com/first-edition/)，所以可能会有些过时。
 
 ## 接下来?
 
