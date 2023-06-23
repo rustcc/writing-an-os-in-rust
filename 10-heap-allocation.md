@@ -150,6 +150,17 @@ extern crate alloc;
 
 与其他依赖不同，我们不需要修改`Cargo.toml` 。 原因是`alloc`crate与Rust编译器一起作为标准库的一部分提供，因此我们只需要启用它即可。 这就是这个`extern crate`语句的作用。（历史上，所有依赖项都需要一个`extern crate`语句，该语句现在是可选的）。
 
+因为我们正在编译自定义的目标，所以我们不能直接使用Rust安装时所附带的预编译版`alloc`。相反地，我们必须告诉cargo从源代码把它重新编译一遍。我们可以通过在文件`.cargo/config.toml`中的`unstable.build-std`数组里添加`alloc`来实现这个操作：
+
+```toml
+# in .cargo/config.toml
+
+[unstable]
+build-std = ["core", "compiler_builtins", "alloc"]
+```
+
+现在，编译器就会重新编译`alloc`，并把它包含在我们的内核里了。
+
 `#[no_std]`默认禁用了`alloc`crate，其原因是它还有其他要求。 现在尝试编译项目时，我们可以从错误中提示看到这些要求：
 
 ```shell
