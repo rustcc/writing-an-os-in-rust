@@ -191,32 +191,57 @@ error[E0463]: can't find crate for `compiler_builtins`
 
 通常状况下，`core`库以**预编译库**（precompiled library）的形式与Rust编译器一同发布——这时，`core`库只对支持的宿主系统有效，而我们自定义的目标系统无效。如果我们想为其它系统编译代码，我们需要为这些系统重新编译整个`core`库。
 
-### Cargo xbuild
+#### `build-std`选项
 
-这就是为什么我们需要[cargo xbuild工具](https://github.com/rust-osdev/cargo-xbuild)。这个工具封装了`cargo build`；但不同的是，它将自动交叉编译`core`库和一些**编译器内建库**（compiler built-in libraries）。我们可以用下面的命令安装它：
+这就是cargo的`build-std`特性可以出场的地方了。它允许我们根据自己的需求重新编译`core`和其他标准库里的包，而不是使用安装Rust时所附带的预编译版本。这项特性目前还很新、没有彻底完成，所以它被标记为“不稳定”并且只在 Nightly Rust 中提供。
 
-```bash
-cargo install cargo-xbuild
+我们需要在`.cargo/config.toml`新建一个[cargo配置文件](https://doc.rust-lang.org/cargo/reference/config.html)来使用这项特性：
+
+```toml
+# in .cargo/config.toml
+
+[unstable]
+build-std = ["core", "compiler_builtins"]
 ```
 
-这个工具依赖于Rust的源代码；我们可以使用`rustup component add rust-src`来安装源代码。
+这会告诉cargo它应当重新编译`core`和`compiler_builtins`库。后者是`core`的依赖，所以也被包括进来。为了编译这些库，cargo需要使用rust的源代码，我们可以使用`rustup component add rust-src`来将其安装。
 
-现在我们可以使用`xbuild`代替`build`重新编译：
+> **注意**：配置项`unstable.build-std`在2020-07-15之后的Rust nightly上可用。
 
-```bash
-> cargo xbuild --target x86_64-blog_os.json
+在设置`unstable.build-std`和安装了`rust-src`组件之后，我们可以重新运行我们的编译指令了：
+
+```
+> cargo build --target x86_64-blog_os.json
    Compiling core v0.0.0 (/…/rust/src/libcore)
-   Compiling compiler_builtins v0.1.5
-   Compiling rustc-std-workspace-core v1.0.0 (/…/rust/src/tools/rustc-std-workspace-core)
-   Compiling alloc v0.0.0 (/tmp/xargo.PB7fj9KZJhAI)
-    Finished release [optimized + debuginfo] target(s) in 45.18s
-   Compiling blog_os v0.1.0 (file:///…/blog_os)
+   Compiling rustc-std-workspace-core v1.99.0 (/…/rust/src/tools/rustc-std-workspace-core)
+   Compiling compiler_builtins v0.1.32
+   Compiling blog_os v0.1.0 (/…/blog_os)
     Finished dev [unoptimized + debuginfo] target(s) in 0.29 secs
 ```
 
-我们能看到，`cargo xbuild`为我们自定义的目标交叉编译了`core`、`compiler_builtin`和`alloc`三个部件。这些部件使用了大量的**不稳定特性**（unstable features），所以只能在[nightly版本的Rust编译器](https://os.phil-opp.com/freestanding-rust-binary/#installing-rust-nightly)中工作。这之后，`cargo xbuild`成功地编译了我们的`blog_os`包。
+可以看到，`cargo build`现在为我们的自定义目标重新编译了`core`、`rustc-std-workspace-core`（`compiler_builtins`的依赖）和`compiler_builtins`。
 
-现在我们可以为裸机编译内核了；但是，我们提供给引导程序的入口点`_start`函数还是空的。我们可以添加一些东西进去，不过我们可以先做一些优化工作。
+#### 和内存相关的内置函数
+
+Rust编译器假定了在所有系统上都有特定的一组内置函数可用。这些函数中的绝大部分都是由我们刚刚重新编译的`compiler_builtins`包提供的。不过，`compiler_builtins`里也有一部分和内存相关的函数是默认不启用的，因为一般情况下系统的C library会提供它们。这些函数包括`memset`，一个能把内存块中全部填上某个值的函数、`memcpy`，一个能把内存块复制到另一个内存块的函数、`memcmp`，一个能比较两个内存块差异的函数。虽然目前我们内核的编译过程还不需要它们，但是只要我们继续向内核中添加更多的代码，它们就会马上被需要（比如把结构体进行复制的时候）。
+
+考虑到我们不能把系统自带的C library链接进来，我们需要一种替代的方法来向编译器提供这些函数。一种可能的方案是我们自己实现一套`memset`等函数，然后加上`#[no_mangle]`属性（来防止这个函数的名字在编译期间被自动重命名）。但是，这种做法实际上是很危险的，因为在实现过程中但凡再小的错误也会引发一个未定义行为（undefined behavior）。例如，用`for`循环来写`memcpy`可能会导致其进入无限递归，因为`for`循环隐式地调用了`[IntoIterator::into_iter](https://doc.rust-lang.org/stable/core/iter/trait.IntoIterator.html#tymethod.into_iter)`特征方法，而它又会再次调用`memcpy`。所以，重复利用现有的、已经经过充分测试的实现是一个更好的主意。
+
+幸运的是，`compiler_builtins`包已经包含了所需的所有函数的实现，它们只是默认没有启用，以免和C library的实现产生冲突。我们可以通过设置cargo的`[build-std-features](https://doc.rust-lang.org/nightly/cargo/reference/unstable.html#build-std-features)`配置项为`["compiler-builtins-mem"]`来启用它们。就像`build-std`配置项一样，这个配置项既可以在命令行参数上作为一个`-Z`参数传递，也可以在`.cargo/config.toml`文件中的`unstable`表中设置。考虑到我们总是需要在编译时使用这个配置项，把它写到配置文件里面对我们来说更有帮助：
+
+```toml
+# in .cargo/config.toml
+
+[unstable]
+build-std-features = ["compiler-builtins-mem"]
+build-std = ["core", "compiler_builtins"]
+```
+
+（对`compiler-builtins-mem`特性的支持[在最近才被加入](https://github.com/rust-lang/rust/pull/77284)，所以你至少需要2020-09-30版本的Rust nightly。）
+
+这个配置项在幕后启用了`compiler_builtins`包的[`mem`特性](https://github.com/rust-lang/compiler-builtins/blob/eff506cd49b637f1ab5931625a33cef7e91fbbf6/Cargo.toml#L54-L55)，这使得这个包里的[`memcpy`等函数的实现](https://github.com/rust-lang/compiler-builtins/blob/eff506cd49b637f1ab5931625a33cef7e91fbbf6/src/mem.rs#L12-L69)被加上了`#[no_mangle]`属性，让它们可以被链接器发现。
+
+通过这个更改，我们的内核在编译时拥有了所有需要函数的实现，所以哪怕之后我们的代码变得更复杂了，编译器也会继续完成编译。
 
 ### 设置默认目标
 
